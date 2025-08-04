@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>cover your eyes</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <body class="theme-darkdefault">
+  <main>
+    <div class="content-wrapper">
+      <header>
+        <nav>
+          <div class="navbar">
+            <ul class="nav-left">
+              <li><a href="/" class="">me</a></li>
+              <li><a href="/yaps" class="">yaps</a></li>
+              <li><a href="/vb" class="font-bold">???</a></li>
+            </ul>
+            <ul class="nav-right">
+              <!-- mail icon (stroke) -->
+              <li>
+                <a href="mailto:justin@justinyap.me" class="icon-stroke" title="email">
+                  <!-- Lucide: Mail -->
+                  <svg xmlns="http://www.w3.org/2000/svg" height="20" width="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="5" width="18" height="14" rx="2" ry="2"></rect>
+                    <polyline points="3 5 12 13 21 5"></polyline>
+                  </svg>
+                </a>
+              </li>
+              <li>
+                <!-- linkedin icon (fill) -->
+                <a href="https://linkedin.com/in/jwsyap" class="icon-fill" target="_blank" title="LinkedIn">
+                  <svg class="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <title>LinkedIn</title>
+                    <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"></path>
+                  </svg>
+                </a>
+              </li>             
+              <li class="darkmode-icon">
+                <div class="sprite-swap" id="spriteSwap" title="Maple Mode"></div>
+              </li>
+            </ul>
+          </div>
+        </nav>
+      </header>
+
+      <article>
+        <h1>🫣 cover your eyes 😳</h1>
+<p><video src="/assets/vb01.mp4" autoplay loop muted playsinline style="max-width: 50%; height: auto;"></video>
+<video src="/assets/vb02.mp4" autoplay loop muted playsinline style="max-width: 50%; height: auto;"></video>
+<video src="/assets/vb03.mp4" autoplay loop muted playsinline style="max-width: 50%; height: auto;"></video></p>
+
+      </article>
+    </div>
+  </main>
+<script>
+  const spriteEl = document.getElementById('spriteSwap');
+  const body = document.body;
+
+  const frames = {
+    idle0: '/assets/stand_0.png',
+    idle1: '/assets/stand_1.png',
+    idle2: '/assets/stand_2.png',
+    click: '/assets/hit1_0.png',
+  };
+
+  let inSequence = false;
+  let clicked = false;
+
+  function runIdleFrame() {
+    if (inSequence || clicked) return;
+
+    const rand = Math.random();
+
+    if (rand < 0.07) {
+      inSequence = true;
+
+      spriteEl.style.backgroundImage = `url('${frames.idle1}')`;
+
+      setTimeout(() => {
+        spriteEl.style.backgroundImage = `url('${frames.idle2}')`;
+      }, 150);
+
+      setTimeout(() => {
+        spriteEl.style.backgroundImage = `url('${frames.idle0}')`;
+        inSequence = false;
+      }, 300);
+    } else {
+      spriteEl.style.backgroundImage = `url('${frames.idle0}')`;
+    }
+  }
+
+  setInterval(runIdleFrame, 150);
+
+  spriteEl.addEventListener('click', () => {
+    toggleTheme();
+
+    if (clicked) return;
+    clicked = true;
+
+    spriteEl.style.backgroundImage = `url('${frames.click}')`;
+
+    setTimeout(() => {
+      clicked = false;
+      spriteEl.style.backgroundImage = `url('${frames.idle0}')`;
+    }, 350);
+  });
+
+  function toggleTheme() {
+    body.classList.toggle('theme-alt');
+    body.classList.toggle('theme-darkdefault');
+  }
+</script>
+
+
+
+<footer>
+  <p style="text-align: center; margin-top: 4rem; font-size: 0.7rem; color: #555;">
+    last updated: 04 Aug 2025
+    <br>
+    <span class="footer-note">
+      hit the hog
+    </span>
+  </p>
+</footer>
+
+</body>
+</html>

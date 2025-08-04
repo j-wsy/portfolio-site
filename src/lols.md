@@ -3,6 +3,6 @@ title: lols
 layout: layout.njk
 ---
 
-# empty for now
+# (coming soon)
 
 watch dis space
