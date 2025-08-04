@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-	"start": "npx @11ty/eleventy --serve"
+	"start": "npx @11ty/eleventy --serve",
+  "clean": "rm -rf docs/",
+  "build": "npm run clean && eleventy"
   },
   "keywords": [],
   "author": "",
