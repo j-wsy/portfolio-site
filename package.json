@@ -5,7 +5,7 @@
   "scripts": {
 	"start": "npx @11ty/eleventy --serve",
   "clean": "rm -rf docs/",
-  "build": "npm run clean && eleventy"
+  "build": "npm run clean && eleventy && cp cname.txt docs/CNAME"
   },
   "keywords": [],
   "author": "",
