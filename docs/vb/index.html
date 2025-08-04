@@ -4,9 +4,11 @@
   <meta charset="UTF-8" />
   <title>cover your eyes</title>
   <link rel="stylesheet" href="/style.css" />
+  <script>
+    document.documentElement.className = localStorage.getItem('theme') || 'theme-darkdefault';
+  </script>
 </head>
 <body>
-  <body class="theme-darkdefault">
   <main>
     <div class="content-wrapper">
       <header>
@@ -46,17 +48,25 @@
       </header>
 
       <article>
-        <h1>🫣 cover your eyes 😳</h1>
-<p><video src="/assets/vb01.mp4" autoplay loop muted playsinline style="max-width: 50%; height: auto;"></video>
-<video src="/assets/vb02.mp4" autoplay loop muted playsinline style="max-width: 50%; height: auto;"></video>
-<video src="/assets/vb03.mp4" autoplay loop muted playsinline style="max-width: 50%; height: auto;"></video></p>
-
+        <h1>😳 cover your eyes 🫣</h1>
+<div class="vb-gallery">
+  <video src="/assets/vb01.mp4" autoplay loop muted playsinline></video>
+  <video src="/assets/vb02.mp4" autoplay loop muted playsinline></video>
+  <video src="/assets/vb03.mp4" autoplay loop muted playsinline></video>
+</div>
       </article>
     </div>
   </main>
+
+<footer>
+  <p style="text-align: center; margin-top: 4rem; font-size: 0.8rem; color: #555;">
+    site last updated: 04 Aug 2025
+  </p>
+</footer>
+
 <script>
   const spriteEl = document.getElementById('spriteSwap');
-  const body = document.body;
+  const root = document.documentElement;
 
   const frames = {
     idle0: '/assets/stand_0.png',
@@ -108,22 +118,11 @@
   });
 
   function toggleTheme() {
-    body.classList.toggle('theme-alt');
-    body.classList.toggle('theme-darkdefault');
+    root.classList.toggle('theme-alt');
+    root.classList.toggle('theme-darkdefault');
+    localStorage.setItem('theme', root.classList.contains('theme-alt') ? 'theme-alt' : 'theme-darkdefault');
   }
 </script>
-
-
-
-<footer>
-  <p style="text-align: center; margin-top: 4rem; font-size: 0.7rem; color: #555;">
-    last updated: 04 Aug 2025
-    <br>
-    <span class="footer-note">
-      hit the hog
-    </span>
-  </p>
-</footer>
 
 </body>
 </html>

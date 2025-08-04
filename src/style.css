@@ -13,14 +13,14 @@
   box-sizing: border-box;
 }
 
-body.theme-darkdefault {
+html.theme-darkdefault body {
   background: #141414;
   color: #e6e6e6;
   --link-color: #80c8ff;
   --link-hover-color: #ff71c6;
 }
 
-body.theme-alt {
+html.theme-alt body {
   background: #ffecd1;         /* creamy pixel-maple parchment */
   color: #471f00;              /* dark cocoa text, like NPC dialogue boxes */
   --link-color: #0076d7;       /* vivid blue portal hue */
@@ -93,6 +93,23 @@ article a:hover {
   color: var(--link-hover-color);
   text-decoration: underline;
 }
+
+.vb-gallery {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem; /* space between each media */
+  justify-content: center; /* optional: center-align them */
+  margin-top: 2rem;
+}
+
+.vb-gallery video {
+  flex: 1 1 300px; /* grow/shrink, min width */
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15); /* frame effect */
+}
+
 
 /* -----------------------------------
    Lists

@@ -1,7 +1,6 @@
 ---
 layout: layout.njk
 title: 👋 hi! i'm justin.
-date: 2025-08-03
 ---
 
 # 👋 hi! i'm justin.
