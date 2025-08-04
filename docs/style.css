@@ -1,0 +1,202 @@
+/* -----------------------------------
+   Variables & Base Styles
+----------------------------------- */
+:root {
+  font-size: 1;
+  line-height: 1.75;
+  margin: 0;
+  padding: 0;
+  font-family: Consolas, ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body.theme-darkdefault {
+  background: #141414;
+  color: #e6e6e6;
+  --link-color: #80c8ff;
+  --link-hover-color: #ff71c6;
+}
+
+body.theme-alt {
+  background: #ffecd1;         /* creamy pixel-maple parchment */
+  color: #471f00;              /* dark cocoa text, like NPC dialogue boxes */
+  --link-color: #0076d7;       /* vivid blue portal hue */
+  --link-hover-color: #ff3cac; /* maple pink sparkle on hover */
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+pre,
+code {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* -----------------------------------
+   Layout
+----------------------------------- */
+main {
+  display: flex;
+  justify-content: center;
+  padding: 3rem 1rem;
+}
+
+.content-wrapper {
+  max-width: 640px;
+  width: 100%;
+  margin: 0 auto;
+  text-align: left;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.footer-note {
+  font-size: 0.4rem;
+  font-style: italic;
+}
+
+/* -----------------------------------
+   Typography & Content Styling
+----------------------------------- */
+.font-bold {
+  font-weight: bold;
+}
+
+article h1 {
+  font-family: ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+article h2 {
+  font-size: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+article p {
+  font-size: 1.1rem;
+  margin-bottom: 1.5rem;
+}
+
+article a {
+  color: var(--link-color);
+  text-decoration: none;
+}
+
+article a:hover {
+  color: var(--link-hover-color);
+  text-decoration: underline;
+}
+
+/* -----------------------------------
+   Lists
+----------------------------------- */
+ul {
+  margin: 0;
+  padding-left: 3rem;
+}
+
+li {
+  margin-bottom: 0;
+}
+
+/* -----------------------------------
+   Navbar Structure
+----------------------------------- */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 2rem;
+}
+
+.navbar ul {
+  display: flex;
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+  gap: 1rem;
+}
+
+.navbar a {
+  text-decoration: none;
+  color: var(--link-color);
+  font-size: 1rem;
+}
+
+nav a:hover {
+  color: var(--link-hover-color);
+  text-decoration: underline;
+}
+
+/* -----------------------------------
+   Icons (SVG)
+----------------------------------- */
+.icon-fill svg {
+  fill: currentColor;
+}
+
+.icon-fill:hover svg {
+  fill: currentColor;
+}
+
+.icon-stroke svg {
+  stroke: currentColor;
+}
+
+.icon-stroke:hover svg {
+  stroke: currentColor;
+}
+
+
+/* -----------------------------------
+   Right-Aligned Nav
+----------------------------------- */
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.nav-right li {
+  display: flex;
+  align-items: center;
+}
+
+.nav-right a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  min-width: 24px;
+  min-height: 24px;
+}
+
+.nav-right a svg {
+  height: 20px;
+  width: 20px;
+  display: block;
+}
+
+/* -----------------------------------
+   Sprite Icon
+----------------------------------- */
+.sprite-swap {
+  width: 64px;
+  height: 64px;
+  background-repeat: no-repeat;
+  background-size: auto;
+  cursor: pointer;
+  transition: background-image 0.1s ease;
+}
+
+.sprite-swap:hover {
+  background: url('/assets/hit1_0.png') no-repeat;
+}
