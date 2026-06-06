@@ -31,13 +31,13 @@ export function parseImportedPresets(json: string): { presets: Preset[]; error?:
   try {
     const parsed = JSON.parse(json)
     if (parsed.schemaVersion !== 1) {
-      return { presets: [], error: 'Invalid schema version — expected schemaVersion: 1' }
+      return { presets: [], error: 'Invalid schema version - expected schemaVersion: 1' }
     }
     if (!Array.isArray(parsed.presets)) {
       return { presets: [], error: 'Invalid format: presets must be an array' }
     }
     return { presets: parsed.presets as Preset[] }
   } catch {
-    return { presets: [], error: 'Failed to parse JSON — check the file is valid' }
+    return { presets: [], error: 'Failed to parse JSON - check the file is valid' }
   }
 }

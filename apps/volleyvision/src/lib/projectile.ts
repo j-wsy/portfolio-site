@@ -32,28 +32,6 @@ export function computeArc(
   return points
 }
 
-export function computeLaunchSpeed(
-  start: [number, number, number],
-  landing: [number, number, number],
-  peakH: number
-): number {
-  const [sx, sy, sz] = start
-  const [lx, , lz] = landing
-
-  const clampedPeak = Math.min(Math.max(peakH, sy + 0.1), MAX_PEAK_HEIGHT)
-  const vy0 = Math.sqrt(2 * G * (clampedPeak - sy))
-  const t_up = vy0 / G
-  const t_dn = Math.sqrt(2 * clampedPeak / G)
-  const T = t_up + t_dn
-
-  const dx = lx - sx
-  const dz = lz - sz
-  const d = Math.sqrt(dx * dx + dz * dz)
-  const vh = d / T
-
-  return Math.sqrt(vh * vh + vy0 * vy0)
-}
-
 export function checkNetClearance(
   points: [number, number, number][],
   netHeightM: number
