@@ -27,6 +27,7 @@ export default function SettingsPanel() {
   const showOpponentCourt = useStore((s) => s.showOpponentCourt)
   const toggleOpponentCourt = useStore((s) => s.toggleOpponentCourt)
   const setSettingsOpen = useStore((s) => s.setSettingsOpen)
+  const presetsOpen = useStore((s) => s.presetsOpen)
   const units = useStore((s) => s.units)
   const toggleUnits = useStore((s) => s.toggleUnits)
 
@@ -96,7 +97,7 @@ export default function SettingsPanel() {
     <div
       className={`fixed bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-xl z-30 select-none ${
         isMobile
-          ? 'left-2 right-2 bottom-32 max-h-[48vh] rounded-xl overflow-hidden'
+          ? `left-2 right-2 ${presetsOpen ? 'top-[52vh] max-h-[36vh]' : 'top-24 max-h-[56vh]'} rounded-xl overflow-hidden`
           : 'rounded-xl'
       }`}
       style={isMobile ? undefined : { left: pos.x, top: pos.y, width: PANEL_W }}
@@ -120,7 +121,7 @@ export default function SettingsPanel() {
         </button>
       </div>
 
-      <div className="p-4 flex max-h-[calc(48vh-3.25rem)] flex-col gap-5 overflow-y-auto">
+      <div className={`p-4 flex ${isMobile && presetsOpen ? 'max-h-[calc(36vh-3.25rem)]' : 'max-h-[calc(56vh-3.25rem)]'} flex-col gap-5 overflow-y-auto`}>
 
         {/* Units */}
         <div>

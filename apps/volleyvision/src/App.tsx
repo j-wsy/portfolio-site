@@ -66,6 +66,11 @@ export default function App() {
 
   useEffect(() => {
     document.documentElement.classList.add('dark')
+    document.documentElement.style.overflow = 'hidden'
+    document.body.style.overflow = 'hidden'
+    document.body.style.position = 'fixed'
+    document.body.style.inset = '0'
+    document.body.style.width = '100%'
   }, [])
 
   const currentStateKey = useMemo(() => JSON.stringify({
@@ -152,12 +157,12 @@ export default function App() {
   const controlsEnabled = orbitEnabled && interactionLock === 0 && !placingMode
 
   return (
-    <div className="w-screen h-screen relative overflow-hidden">
+    <div className="fixed inset-0 h-[100dvh] w-screen overflow-hidden">
       {isMobile ? (
         <div className="absolute top-3 left-3 right-3 z-10 pointer-events-none select-none text-center">
           <div className="flex items-baseline justify-center gap-2">
             <span className="text-xl font-semibold text-white/90 tracking-wide">VolleyVision</span>
-            <span className="text-xs font-medium text-white/45">v2</span>
+            <span className="text-xs font-medium text-white/45">v3</span>
           </div>
           <div className="mt-1 text-lg font-semibold text-white/80 truncate">
             {selectionFolderName}
@@ -172,7 +177,7 @@ export default function App() {
         <>
           <div className="absolute top-4 left-5 z-10 pointer-events-none select-none flex items-baseline gap-2">
             <span className="text-2xl font-semibold text-white/90 tracking-wide">VolleyVision</span>
-            <span className="text-sm font-medium text-white/45">v2</span>
+            <span className="text-sm font-medium text-white/45">v3</span>
           </div>
 
           <div className="absolute top-5 left-0 right-0 flex justify-center pointer-events-none z-10">
@@ -191,7 +196,7 @@ export default function App() {
       )}
 
       <Canvas
-        camera={{ position: [12, 8, 0], fov: 50 }}
+        camera={isMobile ? { position: [18, 11, 0], fov: 58 } : { position: [12, 8, 0], fov: 50 }}
         style={{ background: SKY }}
         onContextMenu={(e) => e.preventDefault()}
         onCreated={({ gl }) => {
