@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import * as THREE from 'three'
 import { useThree } from '@react-three/fiber'
 import { useStore } from '../store/useStore'
@@ -27,6 +27,7 @@ export default function Ball({
 }: BallProps) {
   const { camera, gl, raycaster } = useThree()
   const setLandingPosition = useStore((s) => s.setLandingPosition)
+  const [highlighted, setHighlighted] = useState(false)
   const isDragging = useRef(false)
   const hit = useRef(new THREE.Vector3())
   const dragOffset = useRef<[number, number]>([0, 0])
@@ -45,19 +46,24 @@ export default function Ball({
   const handlePointerEnter = (e: any) => {
     if (!draggable) return
     e.stopPropagation()
+    setHighlighted(true)
     document.body.style.cursor = cursor
   }
 
   const handlePointerLeave = (e: any) => {
     if (!draggable) return
     e.stopPropagation()
-    if (!isDragging.current) document.body.style.cursor = 'auto'
+    if (!isDragging.current) {
+      setHighlighted(false)
+      document.body.style.cursor = 'auto'
+    }
   }
 
   const handlePointerDown = (e: any) => {
     if (!draggable) return
     e.stopPropagation()
     isDragging.current = true
+    setHighlighted(true)
     document.body.style.cursor = 'grabbing'
     const clickXZ = getWorldXZ(e.clientX, e.clientY)
     dragOffset.current = clickXZ ? [position[0] - clickXZ[0], position[2] - clickXZ[1]] : [0, 0]
@@ -81,6 +87,7 @@ export default function Ball({
     if (!draggable || !isDragging.current) return
     e.stopPropagation()
     isDragging.current = false
+    setHighlighted(false)
     document.body.style.cursor = cursor
     onDragEnd?.()
   }
@@ -89,24 +96,38 @@ export default function Ball({
     if (!draggable || !isDragging.current) return
     e.stopPropagation()
     isDragging.current = false
+    setHighlighted(false)
     document.body.style.cursor = 'auto'
     onDragEnd?.()
   }
 
   return (
-    <mesh
-      position={[position[0], 0.005, position[2]]}
-      rotation={[-Math.PI / 2, 0, 0]}
-      onPointerEnter={handlePointerEnter}
-      onPointerLeave={handlePointerLeave}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerCancel}
-      onLostPointerCapture={handlePointerCancel}
-    >
-      <ringGeometry args={[0.20, 0.44, 48]} />
-      <meshBasicMaterial color={color} transparent opacity={0.9} />
-    </mesh>
+    <group position={[position[0], 0, position[2]]} rotation={[-Math.PI / 2, 0, 0]}>
+      <mesh
+        position={[0, 0, 0.01]}
+        onPointerEnter={handlePointerEnter}
+        onPointerLeave={handlePointerLeave}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerCancel}
+        onLostPointerCapture={handlePointerCancel}
+      >
+        <circleGeometry args={[0.49, 48]} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+      </mesh>
+
+      <mesh position={[0, 0, 0.007]} raycast={() => {}}>
+        <ringGeometry args={[0.20, highlighted ? 0.50 : 0.44, 48]} />
+        <meshBasicMaterial color={color} transparent opacity={highlighted ? 0.38 : 0.9} depthWrite={false} />
+      </mesh>
+
+      {highlighted && (
+        <mesh position={[0, 0, 0.006]} raycast={() => {}}>
+          <ringGeometry args={[0.48, 0.56, 48]} />
+          <meshBasicMaterial color={color} transparent opacity={0.55} depthWrite={false} />
+        </mesh>
+      )}
+    </group>
   )
 }

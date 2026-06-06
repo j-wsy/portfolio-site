@@ -50,7 +50,7 @@ export interface Folder {
 }
 
 export const UNSORTED_FOLDER_ID = 'unsorted'
-export const UNSORTED_FOLDER_NAME = 'Unsorted'
+export const UNSORTED_FOLDER_NAME = 'General'
 
 export interface AppStore {
   darkMode: boolean
@@ -59,6 +59,8 @@ export interface AppStore {
 
   settingsOpen: boolean
   presetsOpen: boolean
+  instructionsOpen: boolean
+  topPanel: 'settings' | 'presets' | 'instructions'
   units: Units
   activePresetId: string | null
   activeFolderId: string | null
@@ -82,6 +84,7 @@ export interface AppStore {
   commitTrajectory: () => void
   setSettingsOpen: (open: boolean) => void
   setPresetsOpen: (open: boolean) => void
+  setInstructionsOpen: (open: boolean) => void
   toggleUnits: () => void
   savePreset: (name: string, folderId?: string) => void
   loadPreset: (id: string) => void
@@ -130,9 +133,11 @@ export const useStore = create<AppStore>()(
 
       settingsOpen: false,
       presetsOpen: false,
+      instructionsOpen: false,
+      topPanel: 'instructions',
       units: 'metric',
       activePresetId: null,
-      activeFolderId: UNSORTED_FOLDER_ID,
+      activeFolderId: null,
 
       setterPosition: [3, 0],
       setter: { heightM: DEFAULT_SETTER_HEIGHT, jumpSet: false },
@@ -163,8 +168,9 @@ export const useStore = create<AppStore>()(
           trajectoryDraft: { ...s.trajectoryDraft, committed: true },
         })),
 
-      setSettingsOpen: (open) => set({ settingsOpen: open }),
-      setPresetsOpen: (open) => set({ presetsOpen: open }),
+      setSettingsOpen: (open) => set({ settingsOpen: open, ...(open ? { topPanel: 'settings' as const } : {}) }),
+      setPresetsOpen: (open) => set({ presetsOpen: open, ...(open ? { topPanel: 'presets' as const } : {}) }),
+      setInstructionsOpen: (open) => set({ instructionsOpen: open, ...(open ? { topPanel: 'instructions' as const } : {}) }),
       toggleUnits: () =>
         set((s) => ({ units: s.units === 'metric' ? 'imperial' : 'metric' })),
 
@@ -278,7 +284,7 @@ export const useStore = create<AppStore>()(
         if (id === UNSORTED_FOLDER_ID) return
         set((s) => ({
           folders: ensureUnsortedFolder(s.folders).filter((f) => f.id !== id),
-          ...(s.activeFolderId === id ? { activeFolderId: UNSORTED_FOLDER_ID, activePresetId: null } : {}),
+          ...(s.activeFolderId === id ? { activeFolderId: null, activePresetId: null } : {}),
         }))
       },
 
@@ -301,7 +307,7 @@ export const useStore = create<AppStore>()(
         }))
       },
 
-      setActiveFolderId: (id) => set({ activeFolderId: id ?? UNSORTED_FOLDER_ID, activePresetId: null }),
+      setActiveFolderId: (id) => set({ activeFolderId: id, activePresetId: null }),
     }),
     {
       name: 'volleyvision-store',
@@ -312,7 +318,9 @@ export const useStore = create<AppStore>()(
           ...persistedState,
           folders: ensureUnsortedFolder(persistedState?.folders ?? current.folders),
           setter: normalizeSetter(persistedState?.setter ?? current.setter),
-          activeFolderId: persistedState?.activeFolderId ?? current.activeFolderId ?? UNSORTED_FOLDER_ID,
+          activeFolderId: persistedState?.activeFolderId === UNSORTED_FOLDER_ID
+            ? null
+            : (persistedState?.activeFolderId ?? current.activeFolderId),
         }
       },
       partialize: (s) => ({

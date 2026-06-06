@@ -82,8 +82,10 @@ export default function Trajectory({ onPeakDragStart, onPeakDragEnd, previewLand
 
   const onOpponentSide = activeLanding[0] < 0
   const baseColor = onOpponentSide ? '#ef4444' : (clears ? '#22c55e' : '#f97316')
+  const handleColor = '#22c55e'
   const arcWidth = isPreview ? 2 : 4
   const arcOpacity = isPreview ? 0.5 : 1
+  const noRay = () => {}
 
   const handlePeakPointerDown = (e: any) => {
     e.stopPropagation()
@@ -149,7 +151,7 @@ export default function Trajectory({ onPeakDragStart, onPeakDragEnd, previewLand
               [peakPoint[0], peakPoint[1], peakPoint[2]],
               [peakPoint[0], 0.003, peakPoint[2]],
             ]}
-            color={baseColor}
+            color={handleColor}
             lineWidth={1}
             dashed
             dashSize={0.25}
@@ -160,7 +162,7 @@ export default function Trajectory({ onPeakDragStart, onPeakDragEnd, previewLand
 
           <mesh position={[peakPoint[0], 0.007, peakPoint[2]]} rotation={[-Math.PI / 2, 0, 0]}>
             <circleGeometry args={[0.11, 32]} />
-            <meshBasicMaterial color={baseColor} transparent opacity={0.5} depthWrite={false} />
+            <meshBasicMaterial color={handleColor} transparent opacity={0.5} depthWrite={false} />
           </mesh>
 
           {/* Peak handle sphere */}
@@ -174,10 +176,20 @@ export default function Trajectory({ onPeakDragStart, onPeakDragEnd, previewLand
               onPointerCancel={handlePeakPointerCancel}
               onLostPointerCapture={handlePeakPointerCancel}
             >
+              <sphereGeometry args={[0.135, 16, 16]} />
+              <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+            </mesh>
+            {peakHovered && (
+              <mesh raycast={noRay}>
+                <sphereGeometry args={[0.145, 16, 16]} />
+                <meshBasicMaterial color={handleColor} transparent opacity={0.28} depthWrite={false} />
+              </mesh>
+            )}
+            <mesh raycast={noRay}>
               <sphereGeometry args={[0.11, 16, 16]} />
               <meshStandardMaterial
-                color={baseColor}
-                emissive={baseColor}
+                color={handleColor}
+                emissive={handleColor}
                 emissiveIntensity={peakHovered ? 0.6 : 0.2}
               />
             </mesh>

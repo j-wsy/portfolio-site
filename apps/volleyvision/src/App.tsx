@@ -21,6 +21,7 @@ import SettingsPanel from './ui/SettingsPanel'
 import PresetPanel from './ui/PresetPanel'
 
 const SKY = '#0f1a2e'
+const VISITED_KEY = 'volleyvision-has-opened'
 
 function clamp(v: number, min: number, max: number) {
   return Math.max(min, Math.min(max, v))
@@ -29,6 +30,9 @@ function clamp(v: number, min: number, max: number) {
 export default function App() {
   const settingsOpen   = useStore((s) => s.settingsOpen)
   const presetsOpen    = useStore((s) => s.presetsOpen)
+  const instructionsOpen = useStore((s) => s.instructionsOpen)
+  const setInstructionsOpen = useStore((s) => s.setInstructionsOpen)
+  const topPanel = useStore((s) => s.topPanel)
   const activePresetId = useStore((s) => s.activePresetId)
   const activeFolderId = useStore((s) => s.activeFolderId)
   const presets        = useStore((s) => s.presets)
@@ -44,8 +48,15 @@ export default function App() {
   const isMobile = useIsMobile()
 
   const activePreset = presets.find((p) => p.id === activePresetId)
-  const activeFolder = folders.find((f) => f.id === activeFolderId)
-  const selectionFolderName = activeFolder?.name ?? 'Unsorted'
+  const activePresetFolder = activePreset
+    ? folders.find((folder) => folder.presetIds.includes(activePreset.id)) ?? folders.find((folder) => folder.id === UNSORTED_FOLDER_ID)
+    : null
+  const activeFolder = activeFolderId ? folders.find((f) => f.id === activeFolderId) : null
+  const selectionLabel = activePreset
+    ? `${activePresetFolder?.name ?? 'General'}: ${activePreset.name}`
+    : activeFolder
+      ? `${activeFolder.name} - Simultaneous`
+      : null
 
   const [orbitEnabled, setOrbitEnabled] = useState(true)
   const [placingMode, setPlacingMode] = useState(false)
@@ -71,6 +82,11 @@ export default function App() {
     document.body.style.position = 'fixed'
     document.body.style.inset = '0'
     document.body.style.width = '100%'
+
+    if (window.localStorage.getItem(VISITED_KEY) !== 'true') {
+      setInstructionsOpen(true)
+      window.localStorage.setItem(VISITED_KEY, 'true')
+    }
   }, [])
 
   const currentStateKey = useMemo(() => JSON.stringify({
@@ -91,15 +107,13 @@ export default function App() {
     if (currentStateKey !== savedStateKeyRef.current) setUnsavedNewSet(true)
   }, [activePresetId, currentStateKey, placingMode])
 
-  const handleCourtPointerMove = useCallback((e: any) => {
-    if (!placingMode || landingPosition) return
-    if (!e.point) return
-    const x = clamp(e.point.x, SET_X_MIN, SET_X_MAX)
-    const z = clamp(e.point.z, SET_Z_MIN, SET_Z_MAX)
+  const setGhostFromPoint = useCallback((point: THREE.Vector3) => {
+    const x = clamp(point.x, SET_X_MIN, SET_X_MAX)
+    const z = clamp(point.z, SET_Z_MIN, SET_Z_MAX)
     setGhostPos([x, 0, z])
-  }, [placingMode, landingPosition])
+  }, [])
 
-  const handleCourtClick = useCallback((e: any) => {
+  const commitLandingFromEvent = useCallback((e: any) => {
     if (!placingMode || landingPosition) return
     if (!e.point) return
     const x = clamp(e.point.x, SET_X_MIN, SET_X_MAX)
@@ -109,6 +123,20 @@ export default function App() {
     setPlacingMode(false)
     setUnsavedNewSet(true)
   }, [placingMode, landingPosition, setLandingPosition])
+
+  const handleCourtPointerMove = useCallback((e: any) => {
+    if (!placingMode || landingPosition) return
+    if (!e.point) return
+    setGhostFromPoint(e.point)
+  }, [placingMode, landingPosition, setGhostFromPoint])
+
+  const handleCourtPointerUp = useCallback((e: any) => {
+    commitLandingFromEvent(e)
+  }, [commitLandingFromEvent])
+
+  const handleCourtClick = useCallback((e: any) => {
+    commitLandingFromEvent(e)
+  }, [commitLandingFromEvent])
 
   const handleCreateNewSet = () => {
     if (placingMode) {
@@ -159,17 +187,14 @@ export default function App() {
   return (
     <div className="fixed inset-0 h-[100dvh] w-screen overflow-hidden">
       {isMobile ? (
-        <div className="absolute top-3 left-3 right-3 z-10 pointer-events-none select-none text-center">
-          <div className="flex items-baseline justify-center gap-2">
+        <div className="absolute top-3 left-3 right-3 z-10 pointer-events-none select-none flex items-baseline justify-between gap-3">
+          <div className="flex flex-shrink-0 items-baseline gap-2">
             <span className="text-xl font-semibold text-white/90 tracking-wide">VolleyVision</span>
-            <span className="text-xs font-medium text-white/45">v3</span>
+            <span className="text-xl font-medium text-white/45">v4</span>
           </div>
-          <div className="mt-1 text-lg font-semibold text-white/80 truncate">
-            {selectionFolderName}
-          </div>
-          {activePreset && (
-            <div className="text-sm font-medium text-white/50 truncate">
-              {activePreset.name}
+          {selectionLabel && (
+            <div className="min-w-0 truncate text-right text-base font-semibold text-white/80">
+              {selectionLabel}
             </div>
           )}
         </div>
@@ -177,21 +202,16 @@ export default function App() {
         <>
           <div className="absolute top-4 left-5 z-10 pointer-events-none select-none flex items-baseline gap-2">
             <span className="text-2xl font-semibold text-white/90 tracking-wide">VolleyVision</span>
-            <span className="text-sm font-medium text-white/45">v3</span>
+            <span className="text-2xl font-medium text-white/45">v4</span>
           </div>
 
-          <div className="absolute top-5 left-0 right-0 flex justify-center pointer-events-none z-10">
-            <div className="text-center select-none">
-              <div className="text-2xl font-semibold text-white/80 tracking-wide">
-                {selectionFolderName}
+          {selectionLabel && (
+            <div className="absolute top-5 left-0 right-0 flex justify-center pointer-events-none z-10">
+              <div className="max-w-[45vw] truncate text-center text-2xl font-semibold text-white/80 tracking-wide">
+                {selectionLabel}
               </div>
-              {activePreset && (
-                <div className="mt-0.5 text-base font-medium text-white/50">
-                  {activePreset.name}
-                </div>
-              )}
             </div>
-          </div>
+          )}
         </>
       )}
 
@@ -207,6 +227,7 @@ export default function App() {
         <Lights />
         <Court
           onPointerMove={handleCourtPointerMove}
+          onPointerUp={handleCourtPointerUp}
           onClick={handleCourtClick}
         />
         <Net />
@@ -239,12 +260,46 @@ export default function App() {
           touches={{ ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN }}
           minPolarAngle={Math.PI / 18}
           maxPolarAngle={(Math.PI * 85) / 180}
+          minDistance={4}
+          maxDistance={34}
           target={[0, 0, 0]}
         />
       </Canvas>
 
       {settingsOpen && <SettingsPanel />}
       {presetsOpen  && <PresetPanel onSelectItem={cancelCreationFlow} />}
+      {instructionsOpen && (
+        <div
+          className={`fixed bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border border-gray-200/70 dark:border-white/10 shadow-2xl text-gray-900 dark:text-white ${
+            isMobile
+              ? `left-2 right-2 top-24 max-h-[56vh] rounded-xl overflow-hidden ${topPanel === 'instructions' ? 'z-40' : 'z-30'}`
+              : 'z-30 right-6 bottom-32 w-[25rem] rounded-2xl'
+          }`}
+        >
+          <div className="flex items-center justify-between border-b border-gray-200/70 dark:border-white/10 px-4 py-3">
+            <span className="text-sm font-semibold">Instructions</span>
+            <button
+              onClick={() => setInstructionsOpen(false)}
+              className="text-xl leading-none text-gray-400 hover:text-gray-700 dark:hover:text-white"
+              aria-label="Close instructions"
+            >
+              x
+            </button>
+          </div>
+          <div className="max-h-[calc(50vh-3.25rem)] overflow-y-auto px-4 py-3 text-sm leading-relaxed text-gray-700 dark:text-gray-200">
+            <p className="font-semibold text-gray-900 dark:text-white">Set Visualizer - Visualize setting strategies for your team.</p>
+            <p className="mt-3">Hi! This is a simple and free 3D indoor volleyball setting visualizer.</p>
+            <ol className="mt-3 space-y-2">
+              <li>1. Global settings: Configure net height, setter height, and standing/jump set.</li>
+              <li>2. New Set: Drag or click to adjust the trajectory and height of the arc.</li>
+              <li>3. Save: Save each set.</li>
+              <li>4. Presets: Organize saved sets into folders (e.g. for each player/position) then select the folder to visualize them simultaneously.</li>
+            </ol>
+            <p className="mt-3">Thanks for checking it out!</p>
+            <p>Justin</p>
+          </div>
+        </div>
+      )}
 
       <ActionBar
         placingMode={placingMode}
