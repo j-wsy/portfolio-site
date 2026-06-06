@@ -5,6 +5,23 @@ import { computeArc, checkNetClearance } from '../lib/projectile'
 
 const GHOST_COLOR = '#7dd3fc'
 const ALERT_COLOR = '#fb7185'
+const CONTACT_COLOR = '#22c55e'
+
+function pointAtProgress(points: [number, number, number][], progress: number): [number, number, number] | null {
+  if (points.length === 0) return null
+  const clamped = Math.min(1, Math.max(0, progress))
+  const scaled = clamped * (points.length - 1)
+  const lo = Math.floor(scaled)
+  const hi = Math.min(points.length - 1, lo + 1)
+  const t = scaled - lo
+  const a = points[lo]
+  const b = points[hi]
+  return [
+    a[0] + (b[0] - a[0]) * t,
+    a[1] + (b[1] - a[1]) * t,
+    a[2] + (b[2] - a[2]) * t,
+  ]
+}
 
 function GhostMeeple({
   position,
@@ -98,10 +115,7 @@ export default function FolderPreview({ enabled = true }: FolderPreviewProps) {
         const points = computeArc(start, landing, preset.trajectory.peakHeight)
         const clears = checkNetClearance(points, preset.net.heightM)
         const color = landing[0] < 0 || !clears ? ALERT_COLOR : GHOST_COLOR
-        const peakPoint = points.length > 0
-          ? points.reduce((best, point) => (point[1] > best[1] ? point : best), points[0])
-          : null
-
+        const contactPoint = pointAtProgress(points, preset.trajectory.contactProgress ?? 0.7)
         return (
           <group key={preset.id}>
             <GhostMeeple
@@ -118,28 +132,28 @@ export default function FolderPreview({ enabled = true }: FolderPreviewProps) {
                 opacity={0.32}
               />
             )}
-            {peakPoint && (
+            {contactPoint && (
               <>
                 <Line
                   points={[
-                    [peakPoint[0], peakPoint[1], peakPoint[2]],
-                    [peakPoint[0], 0.003, peakPoint[2]],
+                    [contactPoint[0], contactPoint[1], contactPoint[2]],
+                    [contactPoint[0], 0.003, contactPoint[2]],
                   ]}
-                  color={color}
+                  color={CONTACT_COLOR}
                   lineWidth={1}
                   dashed
                   dashSize={0.25}
                   gapSize={0.15}
                   transparent
-                  opacity={0.22}
+                  opacity={0.24}
                 />
-                <mesh position={[peakPoint[0], peakPoint[1], peakPoint[2]]}>
-                  <sphereGeometry args={[0.11, 12, 12]} />
-                  <meshBasicMaterial color={color} transparent opacity={0.35} depthWrite={false} />
+                <mesh position={[contactPoint[0], contactPoint[1], contactPoint[2]]}>
+                  <sphereGeometry args={[0.09, 12, 12]} />
+                  <meshBasicMaterial color={CONTACT_COLOR} transparent opacity={0.45} depthWrite={false} />
                 </mesh>
-                <mesh position={[peakPoint[0], 0.007, peakPoint[2]]} rotation={[-Math.PI / 2, 0, 0]}>
-                  <circleGeometry args={[0.10, 28]} />
-                  <meshBasicMaterial color={color} transparent opacity={0.28} depthWrite={false} />
+                <mesh position={[contactPoint[0], 0.007, contactPoint[2]]} rotation={[-Math.PI / 2, 0, 0]}>
+                  <circleGeometry args={[0.09, 28]} />
+                  <meshBasicMaterial color={CONTACT_COLOR} transparent opacity={0.35} depthWrite={false} />
                 </mesh>
               </>
             )}

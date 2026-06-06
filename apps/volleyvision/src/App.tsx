@@ -95,7 +95,8 @@ export default function App() {
     net,
     landingPosition: trajectoryDraft.landingPosition,
     peakHeight: trajectoryDraft.peakHeight,
-  }), [landingPosition, net, setter, setterPosition, trajectoryDraft.landingPosition, trajectoryDraft.peakHeight])
+    contactProgress: trajectoryDraft.contactProgress,
+  }), [landingPosition, net, setter, setterPosition, trajectoryDraft.landingPosition, trajectoryDraft.peakHeight, trajectoryDraft.contactProgress])
 
   useEffect(() => {
     savedStateKeyRef.current = activePresetId ? currentStateKey : null
@@ -187,13 +188,13 @@ export default function App() {
   return (
     <div className="fixed inset-0 h-[100dvh] w-screen overflow-hidden">
       {isMobile ? (
-        <div className="absolute top-3 left-3 right-3 z-10 pointer-events-none select-none flex items-baseline justify-between gap-3">
+        <div className="absolute top-3 left-3 right-3 z-10 pointer-events-none select-none">
           <div className="flex flex-shrink-0 items-baseline gap-2">
             <span className="text-xl font-semibold text-white/90 tracking-wide">VolleyVision</span>
-            <span className="text-xl font-medium text-white/45">v4</span>
+            <span className="text-xl font-medium text-white/45">v5</span>
           </div>
           {selectionLabel && (
-            <div className="min-w-0 truncate text-right text-base font-semibold text-white/80">
+            <div className="mt-1 max-w-full text-left text-base font-semibold leading-tight text-white/80">
               {selectionLabel}
             </div>
           )}
@@ -202,7 +203,7 @@ export default function App() {
         <>
           <div className="absolute top-4 left-5 z-10 pointer-events-none select-none flex items-baseline gap-2">
             <span className="text-2xl font-semibold text-white/90 tracking-wide">VolleyVision</span>
-            <span className="text-2xl font-medium text-white/45">v4</span>
+            <span className="text-2xl font-medium text-white/45">v5</span>
           </div>
 
           {selectionLabel && (
@@ -248,8 +249,8 @@ export default function App() {
         )}
         {showActiveSet && (
           <Trajectory
-            onPeakDragStart={disableOrbit}
-            onPeakDragEnd={enableOrbit}
+            onDragStart={disableOrbit}
+            onDragEnd={enableOrbit}
             previewLanding={placingMode && !landingPosition ? ghostPos : null}
           />
         )}
@@ -280,7 +281,7 @@ export default function App() {
             <span className="text-sm font-semibold">Instructions</span>
             <button
               onClick={() => setInstructionsOpen(false)}
-              className="text-xl leading-none text-gray-400 hover:text-gray-700 dark:hover:text-white"
+              className="flex h-7 w-7 items-center justify-center rounded-md bg-red-500 text-sm font-semibold leading-none text-white hover:bg-red-600 transition-colors"
               aria-label="Close instructions"
             >
               x
@@ -291,12 +292,12 @@ export default function App() {
             <p className="mt-3">Hi! This is a simple and free 3D indoor volleyball setting visualizer.</p>
             <ol className="mt-3 space-y-2">
               <li>1. Global settings: Configure net height, setter height, and standing/jump set.</li>
-              <li>2. New Set: Drag or click to adjust the trajectory and height of the arc.</li>
+              <li>2. New Set: Drag to adjust the trajectory, arc height, and indicate the optimal contact point.</li>
               <li>3. Save: Save each set.</li>
               <li>4. Presets: Organize saved sets into folders (e.g. for each player/position) then select the folder to visualize them simultaneously.</li>
             </ol>
-            <p className="mt-3">Thanks for checking it out!</p>
-            <p>Justin</p>
+            <p className="mt-3">Thanks for checking this out!</p>
+            <p>- Justin</p>
           </div>
         </div>
       )}

@@ -73,7 +73,6 @@ export default function SettingsPanel() {
   const btnBase = 'py-1.5 rounded-lg text-sm font-medium border transition-colors'
   const btnActive = 'bg-blue-500 border-blue-500 text-white'
   const btnIdle = 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
-  const btnAmberActive = 'bg-amber-500 border-amber-500 text-white'
 
   useEffect(() => {
     setHeightText(
@@ -113,9 +112,10 @@ export default function SettingsPanel() {
       >
         <span className="font-semibold text-sm text-gray-900 dark:text-white">Settings</span>
         <button
-          className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xl leading-none"
+          className="flex h-7 w-7 items-center justify-center rounded-md bg-red-500 text-sm font-semibold leading-none text-white hover:bg-red-600 transition-colors"
           onMouseDown={(e) => e.stopPropagation()}
           onClick={() => setSettingsOpen(false)}
+          aria-label="Close settings"
         >
           x
         </button>
@@ -203,7 +203,7 @@ export default function SettingsPanel() {
               onChange={(e) => setHeightText(e.target.value)}
               onBlur={commitSetterHeight}
               onKeyDown={(e) => { if (e.key === 'Enter') commitSetterHeight() }}
-              className="w-24 px-2 py-1.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-950 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-400"
+              className="w-24 px-2 py-1.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-950 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
             />
             <span className="text-sm text-gray-500 dark:text-gray-400">
               {units === 'metric' ? 'cm' : 'in'}
@@ -216,7 +216,7 @@ export default function SettingsPanel() {
             step={1}
             value={Math.round(setter.heightM * 100)}
             onChange={(e) => updateSetter({ heightM: Number(e.target.value) / 100 })}
-            className="w-full accent-amber-500 mb-1"
+            className="w-full accent-blue-500 mb-1"
           />
           <div className="flex justify-between text-xs text-gray-400 mb-2">
             <span>{fmtHeight(MIN_SETTER_HEIGHT, units)}</span>
@@ -225,13 +225,13 @@ export default function SettingsPanel() {
           <div className="flex gap-2">
             <button
               onClick={() => updateSetter({ jumpSet: false })}
-              className={`flex-1 ${btnBase} ${!setter.jumpSet ? btnAmberActive : btnIdle}`}
+              className={`flex-1 ${btnBase} ${!setter.jumpSet ? btnActive : btnIdle}`}
             >
               Standing
             </button>
             <button
               onClick={() => updateSetter({ jumpSet: true })}
-              className={`flex-1 ${btnBase} ${setter.jumpSet ? btnAmberActive : btnIdle}`}
+              className={`flex-1 ${btnBase} ${setter.jumpSet ? btnActive : btnIdle}`}
             >
               Jump Set
             </button>

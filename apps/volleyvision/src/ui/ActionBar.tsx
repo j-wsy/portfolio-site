@@ -92,24 +92,25 @@ export default function ActionBar({
         {/* Tools section */}
         <div className="relative">
           {saving && (
-            <div className={`absolute bottom-full mb-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg ${isMobile ? 'w-[calc(100vw-1rem)] justify-center' : 'whitespace-nowrap'}`}>
+            <div className={`absolute bottom-full mb-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-2.5 py-2 shadow-lg dark:border-gray-700 dark:bg-gray-800 ${isMobile ? 'w-max max-w-[calc(100vw-1rem)]' : 'whitespace-nowrap'}`}>
               <input
                 ref={nameInputRef}
                 value={presetName}
                 onChange={(e) => setPresetName(e.target.value)}
                 onKeyDown={handleSaveKeyDown}
                 placeholder="Preset name"
-                className="min-w-0 w-40 px-3 py-2 text-base rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+                className="min-w-0 w-36 px-2.5 py-1.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
               />
               <button
                 onClick={handleSaveConfirm}
-                className="px-3 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-base font-semibold"
+                className="px-2.5 py-1.5 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-sm font-semibold whitespace-nowrap"
               >
-                Save Set
+                Save as Preset
               </button>
               <button
                 onClick={closeSaveForm}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-base leading-none px-1"
+                className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-red-500 text-sm font-semibold leading-none text-white hover:bg-red-600 transition-colors"
+                aria-label="Close save popup"
               >
                 x
               </button>

@@ -1,6 +1,15 @@
 import { MAX_PEAK_HEIGHT, ARC_STEPS } from './constants'
 
 const G = 9.81
+const PEAK_FORWARD_SHIFT = 0.15
+
+function shiftedHorizontalProgress(u: number, peakU: number): number {
+  const shiftedPeakU = Math.min(0.85, Math.max(0.15, peakU + PEAK_FORWARD_SHIFT))
+  if (u <= peakU) {
+    return peakU === 0 ? 0 : (u / peakU) * shiftedPeakU
+  }
+  return shiftedPeakU + ((u - peakU) / (1 - peakU)) * (1 - shiftedPeakU)
+}
 
 export function computeArc(
   start: [number, number, number],
@@ -19,14 +28,16 @@ export function computeArc(
   const t_up = vy0 / G
   const t_dn = Math.sqrt(2 * clampedPeak / G)
   const T = t_up + t_dn
+  const peakU = t_up / T
 
   const points: [number, number, number][] = []
   for (let i = 0; i <= steps; i++) {
     const u = i / steps
     const t = u * T
+    const horizontalU = shiftedHorizontalProgress(u, peakU)
     const y = sy + vy0 * t - 0.5 * G * t * t
-    const x = sx + (lx - sx) * u
-    const z = sz + (lz - sz) * u
+    const x = sx + (lx - sx) * horizontalU
+    const z = sz + (lz - sz) * horizontalU
     points.push([x, Math.max(0, y), z])
   }
   return points
