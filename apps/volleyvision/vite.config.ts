@@ -7,5 +7,14 @@ export default defineConfig({
   build: {
     outDir: '../../docs/volleyvision',
     emptyOutDir: true,
+    chunkSizeWarningLimit: 1500,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          three: ['three'],
+          r3f: ['@react-three/fiber', '@react-three/drei'],
+        },
+      },
+    },
   },
 })
