@@ -87,6 +87,13 @@ export default function Meeple({ onDragStart, onDragEnd }: MeepleProps) {
     document.body.style.cursor = hovered ? 'grab' : 'auto'
     onDragEnd()
   }
+  const handlePointerCancel = (e: any) => {
+    if (!isDragging.current) return
+    e.stopPropagation()
+    isDragging.current = false
+    document.body.style.cursor = 'auto'
+    onDragEnd()
+  }
 
   const noRay = () => {}
   const jumping = setter.jumpSet
@@ -104,6 +111,8 @@ export default function Meeple({ onDragStart, onDragEnd }: MeepleProps) {
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerCancel}
+        onLostPointerCapture={handlePointerCancel}
       >
         <cylinderGeometry args={[cyl_r, cyl_r, h, 16]} />
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />

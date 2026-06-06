@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState, useEffect } from 'react'
 import { useStore, UNSORTED_FOLDER_ID } from '../store/useStore'
 import { fmtHeight } from '../lib/units'
+import { useIsMobile } from '../lib/useIsMobile'
 
 let _pos: { x: number; y: number } | null = null
 
@@ -11,6 +12,7 @@ interface PresetPanelProps {
 }
 
 export default function PresetPanel({ onSelectItem }: PresetPanelProps) {
+  const isMobile = useIsMobile()
   const presets = useStore((s) => s.presets)
   const folders = useStore((s) => s.folders)
   const units = useStore((s) => s.units)
@@ -27,6 +29,7 @@ export default function PresetPanel({ onSelectItem }: PresetPanelProps) {
   const addPresetToFolder = useStore((s) => s.addPresetToFolder)
   const setActiveFolderId = useStore((s) => s.setActiveFolderId)
   const setPresetsOpen = useStore((s) => s.setPresetsOpen)
+  const settingsOpen = useStore((s) => s.settingsOpen)
 
   const fileRef = useRef<HTMLInputElement>(null)
   const [importError, setImportError] = useState<string | null>(null)
@@ -139,12 +142,17 @@ export default function PresetPanel({ onSelectItem }: PresetPanelProps) {
 
   return (
     <div
-      className="fixed bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-30 select-none max-h-[76vh] flex flex-col"
-      style={{ left: pos.x, top: pos.y, width: PANEL_W }}
+      className={`fixed bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-xl z-30 select-none flex flex-col ${
+        isMobile
+          ? `left-2 right-2 ${settingsOpen ? 'top-24 max-h-[28vh]' : 'bottom-32 max-h-[52vh]'} rounded-xl overflow-hidden`
+          : 'rounded-xl max-h-[76vh]'
+      }`}
+      style={isMobile ? undefined : { left: pos.x, top: pos.y, width: PANEL_W }}
     >
       <div
-        className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 cursor-grab active:cursor-grabbing flex-shrink-0"
+        className={`flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex-shrink-0 ${isMobile ? '' : 'cursor-grab active:cursor-grabbing'}`}
         onMouseDown={(e) => {
+          if (isMobile) return
           dragging.current = true
           dragStart.current = { mx: e.clientX, my: e.clientY, px: pos.x, py: pos.y }
         }}

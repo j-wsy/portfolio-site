@@ -2,6 +2,7 @@ import { useRef, useState, useEffect } from 'react'
 import { useStore } from '../store/useStore'
 import { FIVB_MEN_NET, FIVB_WOMEN_NET, MIN_SETTER_HEIGHT } from '../lib/constants'
 import { fmtHeight, fmtNetHeight } from '../lib/units'
+import { useIsMobile } from '../lib/useIsMobile'
 
 // Persists position across open/close cycles within the same session
 let _pos: { x: number; y: number } | null = null
@@ -18,6 +19,7 @@ function clampPanelPos(pos: { x: number; y: number }) {
 }
 
 export default function SettingsPanel() {
+  const isMobile = useIsMobile()
   const setter = useStore((s) => s.setter)
   const updateSetter = useStore((s) => s.updateSetter)
   const net = useStore((s) => s.net)
@@ -92,13 +94,18 @@ export default function SettingsPanel() {
 
   return (
     <div
-      className="fixed bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-30 select-none"
-      style={{ left: pos.x, top: pos.y, width: PANEL_W }}
+      className={`fixed bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-xl z-30 select-none ${
+        isMobile
+          ? 'left-2 right-2 bottom-32 max-h-[48vh] rounded-xl overflow-hidden'
+          : 'rounded-xl'
+      }`}
+      style={isMobile ? undefined : { left: pos.x, top: pos.y, width: PANEL_W }}
     >
       {/* drag handle / header */}
       <div
-        className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 cursor-grab active:cursor-grabbing"
+        className={`flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 ${isMobile ? '' : 'cursor-grab active:cursor-grabbing'}`}
         onMouseDown={(e) => {
+          if (isMobile) return
           dragging.current = true
           dragStart.current = { mx: e.clientX, my: e.clientY, px: pos.x, py: pos.y }
         }}
@@ -113,7 +120,7 @@ export default function SettingsPanel() {
         </button>
       </div>
 
-      <div className="p-4 flex flex-col gap-5">
+      <div className="p-4 flex max-h-[calc(48vh-3.25rem)] flex-col gap-5 overflow-y-auto">
 
         {/* Units */}
         <div>

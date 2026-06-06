@@ -1,12 +1,14 @@
 import { useState, useRef } from 'react'
 import { useStore } from '../store/useStore'
+import { useIsMobile } from '../lib/useIsMobile'
 
-const pill = 'flex items-center gap-3 px-5 py-4 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-2xl shadow-xl border border-gray-200/60 dark:border-white/10 select-none'
-const btn  = 'px-6 py-3 rounded-2xl text-lg font-semibold transition-colors whitespace-nowrap'
+const pill = 'flex items-center justify-center gap-3 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-2xl shadow-xl border border-gray-200/60 dark:border-white/10 select-none'
+const btn  = 'rounded-2xl font-semibold transition-colors whitespace-nowrap'
+const btnSize = (isMobile: boolean) => isMobile ? 'px-4 py-2.5 text-base' : 'px-6 py-3 text-lg'
 const btnNeutral = `${btn} text-gray-700 dark:text-gray-300 hover:bg-gray-200/60 dark:hover:bg-white/10`
 const btnPrimary = `${btn} bg-blue-500 hover:bg-blue-600 text-white`
-const btnDanger  = `${btn} bg-red-500/90 hover:bg-red-600 text-white`
-const btnActive  = `${btn} bg-amber-500 hover:bg-amber-600 text-white`
+const btnDanger = `${btn} bg-red-500/90 hover:bg-red-600 text-white`
+const btnActive = `${btn} bg-amber-500 hover:bg-amber-600 text-white`
 const sep = 'w-px h-5 bg-gray-300 dark:bg-gray-600 self-center mx-0.5'
 
 interface ActionBarProps {
@@ -22,6 +24,7 @@ export default function ActionBar({
   onCreateNewSet,
   onSaveComplete,
 }: ActionBarProps) {
+  const isMobile = useIsMobile()
   const landingPosition  = useStore((s) => s.trajectoryDraft.landingPosition)
   const settingsOpen     = useStore((s) => s.settingsOpen)
   const setSettingsOpen  = useStore((s) => s.setSettingsOpen)
@@ -56,7 +59,7 @@ export default function ActionBar({
   }
 
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-2">
+    <div className="fixed bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-20 flex w-[calc(100vw-1rem)] sm:w-auto flex-col items-center gap-2">
       {unsavedNewSet && (
         <div className="rounded-xl border border-red-400/30 bg-red-950/55 px-4 py-2 text-sm font-semibold text-red-200 shadow-lg backdrop-blur-md">
           New Set not yet saved.
@@ -68,28 +71,28 @@ export default function ActionBar({
         </div>
       )}
 
-      <div className={pill}>
+      <div className={`${pill} ${isMobile ? 'w-full flex-wrap px-3 py-3 gap-2' : 'px-5 py-4'}`}>
         {/* Place Set section */}
         <button
           onClick={onCreateNewSet}
-          className={placingMode ? btnDanger : btnPrimary}
+          className={`${placingMode ? btnDanger : btnPrimary} ${btnSize(isMobile)} ${isMobile ? 'flex-1 min-w-[9rem]' : ''}`}
         >
           {placingMode ? 'Cancel' : 'Create New Set'}
         </button>
 
-        <div className={sep} />
+        {!isMobile && <div className={sep} />}
 
         {/* Tools section */}
         <div className="relative">
           {saving && (
-            <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg whitespace-nowrap">
+            <div className={`absolute bottom-full mb-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg ${isMobile ? 'w-[calc(100vw-1.5rem)] justify-center' : 'whitespace-nowrap'}`}>
               <input
                 ref={nameInputRef}
                 value={presetName}
                 onChange={(e) => setPresetName(e.target.value)}
                 onKeyDown={handleSaveKeyDown}
                 placeholder="Preset name"
-                className="w-44 px-3 py-2 text-base rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+                className="min-w-0 w-40 px-3 py-2 text-base rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
               />
               <button
                 onClick={handleSaveConfirm}
@@ -105,19 +108,19 @@ export default function ActionBar({
               </button>
             </div>
           )}
-          <button onClick={handleSaveClick} className={btnNeutral}>Save Set</button>
+          <button onClick={handleSaveClick} className={`${btnNeutral} ${btnSize(isMobile)}`}>Save Set</button>
         </div>
 
         <button
           onClick={() => setPresetsOpen(!presetsOpen)}
-          className={presetsOpen ? btnActive : btnNeutral}
+          className={`${presetsOpen ? btnActive : btnNeutral} ${btnSize(isMobile)}`}
         >
           Presets
         </button>
 
         <button
           onClick={() => setSettingsOpen(!settingsOpen)}
-          className={settingsOpen ? btnActive : btnNeutral}
+          className={`${settingsOpen ? btnActive : btnNeutral} ${btnSize(isMobile)}`}
         >
           Settings
         </button>

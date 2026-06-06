@@ -5,6 +5,7 @@ import * as THREE from 'three'
 
 import { UNSORTED_FOLDER_ID, useStore } from './store/useStore'
 import { DEFAULT_PEAK_HEIGHT, SET_X_MIN, SET_X_MAX, SET_Z_MIN, SET_Z_MAX } from './lib/constants'
+import { useIsMobile } from './lib/useIsMobile'
 
 import Lights from './scene/Lights'
 import Court from './scene/Court'
@@ -40,6 +41,7 @@ export default function App() {
   const setter             = useStore((s) => s.setter)
   const net                = useStore((s) => s.net)
   const trajectoryDraft    = useStore((s) => s.trajectoryDraft)
+  const isMobile = useIsMobile()
 
   const activePreset = presets.find((p) => p.id === activePresetId)
   const activeFolder = folders.find((f) => f.id === activeFolderId)
@@ -50,10 +52,17 @@ export default function App() {
   const [editingNewSet, setEditingNewSet] = useState(false)
   const [unsavedNewSet, setUnsavedNewSet] = useState(false)
   const [ghostPos, setGhostPos] = useState<[number, number, number] | null>(null)
+  const [interactionLock, setInteractionLock] = useState(0)
   const savedStateKeyRef = useRef<string | null>(null)
 
-  const disableOrbit = useCallback(() => setOrbitEnabled(false), [])
-  const enableOrbit  = useCallback(() => setOrbitEnabled(true),  [])
+  const disableOrbit = useCallback(() => {
+    setInteractionLock((count) => count + 1)
+    setOrbitEnabled(false)
+  }, [])
+  const enableOrbit = useCallback(() => {
+    setInteractionLock((count) => Math.max(0, count - 1))
+    setOrbitEnabled(true)
+  }, [])
 
   useEffect(() => {
     document.documentElement.classList.add('dark')
@@ -140,27 +149,46 @@ export default function App() {
     : (activeFolder?.presetIds.length ?? 0)
   const folderPreviewActive = !!activeFolderId && activeFolderPresetCount > 0 && !activePresetId && !editingNewSet && !placingMode
   const showActiveSet = !folderPreviewActive
+  const controlsEnabled = orbitEnabled && interactionLock === 0 && !placingMode
 
   return (
     <div className="w-screen h-screen relative overflow-hidden">
-      <div className="absolute top-4 left-5 z-10 pointer-events-none select-none flex items-baseline gap-2">
-        <span className="text-2xl font-semibold text-white/90 tracking-wide">VolleyVision</span>
-        <span className="text-sm font-medium text-white/45">v1</span>
-      </div>
-
-      {/* Current folder / preset selection */}
-      <div className="absolute top-5 left-0 right-0 flex justify-center pointer-events-none z-10">
-        <div className="text-center select-none">
-          <div className="text-2xl font-semibold text-white/80 tracking-wide">
+      {isMobile ? (
+        <div className="absolute top-3 left-3 right-3 z-10 pointer-events-none select-none text-center">
+          <div className="flex items-baseline justify-center gap-2">
+            <span className="text-xl font-semibold text-white/90 tracking-wide">VolleyVision</span>
+            <span className="text-xs font-medium text-white/45">v2</span>
+          </div>
+          <div className="mt-1 text-lg font-semibold text-white/80 truncate">
             {selectionFolderName}
           </div>
           {activePreset && (
-            <div className="mt-0.5 text-base font-medium text-white/50">
+            <div className="text-sm font-medium text-white/50 truncate">
               {activePreset.name}
             </div>
           )}
         </div>
-      </div>
+      ) : (
+        <>
+          <div className="absolute top-4 left-5 z-10 pointer-events-none select-none flex items-baseline gap-2">
+            <span className="text-2xl font-semibold text-white/90 tracking-wide">VolleyVision</span>
+            <span className="text-sm font-medium text-white/45">v2</span>
+          </div>
+
+          <div className="absolute top-5 left-0 right-0 flex justify-center pointer-events-none z-10">
+            <div className="text-center select-none">
+              <div className="text-2xl font-semibold text-white/80 tracking-wide">
+                {selectionFolderName}
+              </div>
+              {activePreset && (
+                <div className="mt-0.5 text-base font-medium text-white/50">
+                  {activePreset.name}
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
 
       <Canvas
         camera={{ position: [12, 8, 0], fov: 50 }}
@@ -200,8 +228,10 @@ export default function App() {
           />
         )}
         <OrbitControls
-          enabled={orbitEnabled}
-          mouseButtons={{ LEFT: null as any, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE }}
+          key={controlsEnabled ? 'controls-on' : 'controls-off'}
+          enabled={controlsEnabled}
+          mouseButtons={{ LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN }}
+          touches={{ ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN }}
           minPolarAngle={Math.PI / 18}
           maxPolarAngle={(Math.PI * 85) / 180}
           target={[0, 0, 0]}
