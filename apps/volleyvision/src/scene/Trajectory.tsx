@@ -119,6 +119,14 @@ export default function Trajectory({ onPeakDragStart, onPeakDragEnd, previewLand
     commitTrajectory()
   }
 
+  const handlePeakPointerCancel = (e: any) => {
+    if (!isDragging.current) return
+    e.stopPropagation()
+    isDragging.current = false
+    document.body.style.cursor = 'auto'
+    onPeakDragEnd()
+  }
+
   return (
     <group>
       {/* Arc line */}
@@ -163,6 +171,8 @@ export default function Trajectory({ onPeakDragStart, onPeakDragEnd, previewLand
               onPointerDown={handlePeakPointerDown}
               onPointerMove={handlePeakPointerMove}
               onPointerUp={handlePeakPointerUp}
+              onPointerCancel={handlePeakPointerCancel}
+              onLostPointerCapture={handlePeakPointerCancel}
             >
               <sphereGeometry args={[0.11, 16, 16]} />
               <meshStandardMaterial

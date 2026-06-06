@@ -85,6 +85,14 @@ export default function Ball({
     onDragEnd?.()
   }
 
+  const handlePointerCancel = (e: any) => {
+    if (!draggable || !isDragging.current) return
+    e.stopPropagation()
+    isDragging.current = false
+    document.body.style.cursor = 'auto'
+    onDragEnd?.()
+  }
+
   return (
     <mesh
       position={[position[0], 0.005, position[2]]}
@@ -94,6 +102,8 @@ export default function Ball({
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerCancel}
+      onLostPointerCapture={handlePointerCancel}
     >
       <ringGeometry args={[0.20, 0.44, 48]} />
       <meshBasicMaterial color={color} transparent opacity={0.9} />
