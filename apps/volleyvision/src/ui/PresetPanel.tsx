@@ -159,9 +159,10 @@ export default function PresetPanel({ onSelectItem }: PresetPanelProps) {
       >
         <span className="font-semibold text-sm text-gray-900 dark:text-white">Presets</span>
         <button
-          className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xl leading-none"
+          className="flex h-7 w-7 items-center justify-center rounded-md bg-red-500 text-sm font-semibold leading-none text-white hover:bg-red-600 transition-colors"
           onMouseDown={(e) => e.stopPropagation()}
           onClick={() => setPresetsOpen(false)}
+          aria-label="Close presets"
         >
           x
         </button>
@@ -208,7 +209,8 @@ export default function PresetPanel({ onSelectItem }: PresetPanelProps) {
 
         <div className="overflow-y-auto flex flex-col gap-2 pr-1">
           {presetsByFolder.map(({ folder, presets: folderPresets }) => {
-            const isFolderActive = folder.id === activeFolderId
+            const isFolderSelected = folder.id === activeFolderId && !activePresetId
+            const isFolderExpanded = folder.id === activeFolderId
             const canDeleteFolder = folder.id !== UNSORTED_FOLDER_ID
 
             return (
@@ -216,7 +218,7 @@ export default function PresetPanel({ onSelectItem }: PresetPanelProps) {
                 <button
                   onClick={() => {
                     onSelectItem?.()
-                    setActiveFolderId(folder.id)
+                    setActiveFolderId(isFolderSelected ? null : folder.id)
                   }}
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={(e) => {
@@ -226,8 +228,8 @@ export default function PresetPanel({ onSelectItem }: PresetPanelProps) {
                     setDraggedPresetId(null)
                   }}
                   className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-left transition-colors ${
-                    isFolderActive
-                      ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-400 dark:border-blue-600'
+                    isFolderSelected
+                      ? 'bg-amber-50 dark:bg-amber-900/25 border-amber-400 dark:border-amber-600'
                       : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
                   }`}
                 >
@@ -245,33 +247,37 @@ export default function PresetPanel({ onSelectItem }: PresetPanelProps) {
                       className="min-w-0 flex-1 px-2 py-1 text-sm rounded-md border border-blue-300 dark:border-blue-700 bg-white dark:bg-gray-950 text-gray-900 dark:text-white"
                     />
                   ) : (
-                    <span
-                      onDoubleClick={(e) => {
-                        e.stopPropagation()
-                        if (folder.id === UNSORTED_FOLDER_ID) return
-                        setEditingFolderId(folder.id)
-                        setEditText(folder.name)
-                      }}
-                      className={`flex-1 truncate text-sm font-semibold ${isFolderActive ? 'text-blue-700 dark:text-blue-300' : 'text-gray-900 dark:text-white'}`}
-                    >
+                    <span className={`flex-1 truncate text-sm font-semibold ${isFolderSelected ? 'text-amber-700 dark:text-amber-300' : 'text-gray-900 dark:text-white'}`}>
                       {folder.name}
                       {folder.id === UNSORTED_FOLDER_ID && (
-                        <span className="ml-1 text-xs font-normal italic text-gray-400">Tap here to visualize all presets simultaneously!</span>
+                        <span className="ml-1 text-xs font-normal text-gray-400">Select folder for simultaneous view</span>
                       )}
                     </span>
                   )}
-                  <span className="text-xs text-gray-400">{folderPresets.length}</span>
-                  {canDeleteFolder && (
-                    <span
-                      onClick={(e) => { e.stopPropagation(); deleteFolder(folder.id) }}
-                      className="text-xs text-gray-400 hover:text-red-500 transition-colors"
-                    >
-                      Delete
+                  {isFolderSelected && canDeleteFolder && (
+                    <span className="flex items-center gap-1.5">
+                      <span
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setEditingFolderId(folder.id)
+                          setEditText(folder.name)
+                        }}
+                        className="rounded-md bg-blue-500 px-2 py-1 text-xs font-semibold text-white hover:bg-blue-600 transition-colors"
+                      >
+                        Rename
+                      </span>
+                      <span
+                        onClick={(e) => { e.stopPropagation(); deleteFolder(folder.id) }}
+                        className="flex h-6 w-6 items-center justify-center rounded-md bg-red-500 text-sm font-semibold leading-none text-white hover:bg-red-600 transition-colors"
+                        aria-label="Delete folder"
+                      >
+                        x
+                      </span>
                     </span>
                   )}
                 </button>
 
-                {isFolderActive && (
+                {isFolderExpanded && (
                   <div className="ml-3 border-l border-gray-200 dark:border-gray-700 pl-3 flex flex-col gap-1.5">
                     {folderPresets.length === 0 && (
                       <p className="text-sm text-gray-400 py-3">No presets in this folder.</p>
@@ -290,7 +296,11 @@ export default function PresetPanel({ onSelectItem }: PresetPanelProps) {
                           onDragEnd={() => setDraggedPresetId(null)}
                           onClick={() => {
                             onSelectItem?.()
-                            loadPreset(preset.id)
+                            if (isActive) {
+                              setActiveFolderId(null)
+                            } else {
+                              loadPreset(preset.id)
+                            }
                           }}
                           className={`flex flex-col gap-2 p-3 rounded-lg border cursor-pointer transition-colors ${
                             isActive
@@ -314,14 +324,7 @@ export default function PresetPanel({ onSelectItem }: PresetPanelProps) {
                                   className="w-full px-2 py-1 text-sm rounded-md border border-amber-300 dark:border-amber-700 bg-white dark:bg-gray-950 text-gray-900 dark:text-white"
                                 />
                               ) : (
-                                <div
-                                  onDoubleClick={(e) => {
-                                    e.stopPropagation()
-                                    setEditingPresetId(preset.id)
-                                    setEditText(preset.name)
-                                  }}
-                                  className={`font-medium text-sm truncate ${isActive ? 'text-amber-700 dark:text-amber-300' : 'text-gray-900 dark:text-white'}`}
-                                >
+                                <div className={`font-medium text-sm truncate ${isActive ? 'text-amber-700 dark:text-amber-300' : 'text-gray-900 dark:text-white'}`}>
                                   {preset.name}
                                 </div>
                               )}
@@ -329,12 +332,27 @@ export default function PresetPanel({ onSelectItem }: PresetPanelProps) {
                                 {preset.setter.jumpSet ? 'Jump set' : 'Standing'} / {fmtHeight(preset.setter.heightM, units)}
                               </div>
                             </div>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); deletePreset(preset.id) }}
-                              className="text-gray-400 hover:text-red-500 transition-colors text-sm flex-shrink-0"
-                            >
-                              x
-                            </button>
+                            {isActive && (
+                              <div className="flex flex-shrink-0 items-center gap-1.5">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setEditingPresetId(preset.id)
+                                    setEditText(preset.name)
+                                  }}
+                                  className="rounded-md bg-blue-500 px-2 py-1 text-xs font-semibold text-white hover:bg-blue-600 transition-colors"
+                                >
+                                  Rename
+                                </button>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); deletePreset(preset.id) }}
+                                  className="flex h-6 w-6 items-center justify-center rounded-md bg-red-500 text-sm font-semibold leading-none text-white hover:bg-red-600 transition-colors"
+                                  aria-label="Delete preset"
+                                >
+                                  x
+                                </button>
+                              </div>
+                            )}
                           </div>
                         </div>
                       )

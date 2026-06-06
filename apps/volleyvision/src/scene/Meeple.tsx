@@ -38,9 +38,12 @@ export default function Meeple({ onDragStart, onDragEnd }: MeepleProps) {
   const body_center_y = h * 0.62
   const head_center_y = h * 0.92
   const cyl_r        = leg_r * 4.5
+  const jumping = setter.jumpSet
+  const jumpOffset = jumping ? JUMP_H : 0
+  const hitboxH = head_center_y + r_head + jumpOffset
 
   const baseColor     = '#f59e0b'
-  const emissiveColor = hovered ? '#f59e0b' : '#000000'
+  const emissiveColor = hovered ? baseColor : '#000000'
   const emissiveInt   = hovered ? 0.3 : 0
   const ringOpacity   = hovered ? 0.7 : 0.4
 
@@ -96,8 +99,6 @@ export default function Meeple({ onDragStart, onDragEnd }: MeepleProps) {
   }
 
   const noRay = () => {}
-  const jumping = setter.jumpSet
-  const jumpOffset = jumping ? JUMP_H : 0
 
   const [px, pz] = setterPosition
 
@@ -105,7 +106,7 @@ export default function Meeple({ onDragStart, onDragEnd }: MeepleProps) {
     <group position={[px, 0, pz]}>
       {/* Invisible interaction cylinder - sole raycast target */}
       <mesh
-        position={[0, h / 2, 0]}
+        position={[0, hitboxH / 2, 0]}
         onPointerEnter={handlePointerEnter}
         onPointerLeave={handlePointerLeave}
         onPointerDown={handlePointerDown}
@@ -114,13 +115,13 @@ export default function Meeple({ onDragStart, onDragEnd }: MeepleProps) {
         onPointerCancel={handlePointerCancel}
         onLostPointerCapture={handlePointerCancel}
       >
-        <cylinderGeometry args={[cyl_r, cyl_r, h, 16]} />
-        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+        <cylinderGeometry args={[cyl_r, cyl_r, hitboxH, 16]} />
+        <meshBasicMaterial color={baseColor} transparent opacity={hovered ? 0.08 : 0} depthWrite={false} />
       </mesh>
 
       {/* Foot ring - always at floor level */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.005, 0]} raycast={noRay}>
-        <ringGeometry args={[leg_r * 2.8, leg_r * 4.5, 48]} />
+        <ringGeometry args={[leg_r * 2.8, leg_r * (hovered ? 5.2 : 4.5), 48]} />
         <meshBasicMaterial
           color={baseColor}
           transparent

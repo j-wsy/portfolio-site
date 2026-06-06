@@ -12,6 +12,7 @@ import {
   exportPresetsToFile,
   parseImportedPresets,
 } from '../lib/presets'
+import { STARTER_FOLDERS } from '../lib/starterData'
 import type { Units } from '../lib/units'
 
 export interface SetterConfig {
@@ -26,6 +27,7 @@ export interface NetConfig {
 export interface TrajectoryDraft {
   landingPosition: [number, number, number] | null
   peakHeight: number
+  contactProgress: number
   committed: boolean
 }
 
@@ -40,6 +42,7 @@ export interface Preset {
   trajectory: {
     landingPosition: [number, number]
     peakHeight: number
+    contactProgress?: number
   }
 }
 
@@ -81,6 +84,7 @@ export interface AppStore {
   updateNet: (patch: Partial<NetConfig>) => void
   setLandingPosition: (pos: [number, number, number] | null) => void
   setPeakHeight: (h: number) => void
+  setContactProgress: (progress: number) => void
   commitTrajectory: () => void
   setSettingsOpen: (open: boolean) => void
   setPresetsOpen: (open: boolean) => void
@@ -121,6 +125,7 @@ function normalizeSetter(setter: SetterConfig): SetterConfig {
 const defaultTrajectory: TrajectoryDraft = {
   landingPosition: null,
   peakHeight: DEFAULT_PEAK_HEIGHT,
+  contactProgress: 0.7,
   committed: false,
 }
 
@@ -148,7 +153,7 @@ export const useStore = create<AppStore>()(
       toggleOpponentCourt: () => set((s) => ({ showOpponentCourt: !s.showOpponentCourt })),
 
       presets: loadPresetsFromStorage(),
-      folders: ensureUnsortedFolder([]),
+      folders: ensureUnsortedFolder(STARTER_FOLDERS),
 
       setSetterPosition: (pos) => set({ setterPosition: pos }),
       updateSetter: (patch) =>
@@ -163,6 +168,13 @@ export const useStore = create<AppStore>()(
         set((s) => ({
           trajectoryDraft: { ...s.trajectoryDraft, peakHeight: h },
         })),
+      setContactProgress: (progress) =>
+        set((s) => ({
+          trajectoryDraft: {
+            ...s.trajectoryDraft,
+            contactProgress: Math.min(0.98, Math.max(0.02, progress)),
+          },
+        })),
       commitTrajectory: () =>
         set((s) => ({
           trajectoryDraft: { ...s.trajectoryDraft, committed: true },
@@ -176,7 +188,7 @@ export const useStore = create<AppStore>()(
 
       savePreset: (name, folderId) => {
         const s = get()
-        const { landingPosition, peakHeight } = s.trajectoryDraft
+        const { landingPosition, peakHeight, contactProgress } = s.trajectoryDraft
         const id = Date.now().toString(36)
         const targetFolderId = folderId ?? s.activeFolderId ?? UNSORTED_FOLDER_ID
         const folders = ensureUnsortedFolder(s.folders)
@@ -191,6 +203,7 @@ export const useStore = create<AppStore>()(
           trajectory: {
             landingPosition: landingPosition ? [landingPosition[0], landingPosition[2]] : [0, 0],
             peakHeight,
+            contactProgress,
           },
         }
         const updatedPresets = [...s.presets, preset]
@@ -226,6 +239,7 @@ export const useStore = create<AppStore>()(
           trajectoryDraft: {
             landingPosition: landingPos,
             peakHeight: preset.trajectory.peakHeight,
+            contactProgress: preset.trajectory.contactProgress ?? defaultTrajectory.contactProgress,
             committed: !!landingPos,
           },
           activePresetId: id,
@@ -258,17 +272,33 @@ export const useStore = create<AppStore>()(
       },
 
       importPresets: (json) => {
-        const { presets: incoming, error } = parseImportedPresets(json)
+        const { presets: incoming, folders: incomingFolders, error } = parseImportedPresets(json)
         if (error) throw new Error(error)
-        const existing = get().presets
+        const s = get()
+        const existing = s.presets
         const existingIds = new Set(existing.map((p) => p.id))
         const merged = [...existing, ...incoming.filter((p) => !existingIds.has(p.id))]
         savePresetsToStorage(merged)
-        set({ presets: merged })
+
+        const folderIds = new Set(s.folders.map((folder) => folder.id))
+        const mergedFolders = incomingFolders
+          ? [
+              ...s.folders,
+              ...incomingFolders
+                .filter((folder) => folder.id !== UNSORTED_FOLDER_ID && !folderIds.has(folder.id))
+                .map((folder) => ({
+                  ...folder,
+                  presetIds: folder.presetIds.filter((id) => merged.some((preset) => preset.id === id)),
+                })),
+            ]
+          : s.folders
+
+        set({ presets: merged, folders: ensureUnsortedFolder(mergedFolders) })
       },
 
       exportPresets: () => {
-        exportPresetsToFile(get().presets)
+        const s = get()
+        exportPresetsToFile(s.presets, ensureUnsortedFolder(s.folders))
       },
 
       createFolder: (name) => {
@@ -307,7 +337,11 @@ export const useStore = create<AppStore>()(
         }))
       },
 
-      setActiveFolderId: (id) => set({ activeFolderId: id, activePresetId: null }),
+      setActiveFolderId: (id) => set({
+        activeFolderId: id,
+        activePresetId: null,
+        trajectoryDraft: { ...defaultTrajectory },
+      }),
     }),
     {
       name: 'volleyvision-store',

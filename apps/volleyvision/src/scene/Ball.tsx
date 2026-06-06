@@ -114,18 +114,18 @@ export default function Ball({
         onLostPointerCapture={handlePointerCancel}
       >
         <circleGeometry args={[0.49, 48]} />
-        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+        <meshBasicMaterial color={color} transparent opacity={highlighted ? 0.10 : 0} depthWrite={false} />
       </mesh>
 
       <mesh position={[0, 0, 0.007]} raycast={() => {}}>
         <ringGeometry args={[0.20, highlighted ? 0.50 : 0.44, 48]} />
-        <meshBasicMaterial color={color} transparent opacity={highlighted ? 0.38 : 0.9} depthWrite={false} />
+        <meshBasicMaterial color={color} transparent opacity={highlighted ? 0.95 : 0.9} depthWrite={false} />
       </mesh>
 
       {highlighted && (
         <mesh position={[0, 0, 0.006]} raycast={() => {}}>
           <ringGeometry args={[0.48, 0.56, 48]} />
-          <meshBasicMaterial color={color} transparent opacity={0.55} depthWrite={false} />
+          <meshBasicMaterial color={color} transparent opacity={0.48} depthWrite={false} />
         </mesh>
       )}
     </group>
