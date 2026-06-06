@@ -55,10 +55,11 @@ function XLine({ z, x0, x1, color }: { z: number; x0: number; x1: number; color:
 
 interface CourtProps {
   onPointerMove?: (e: any) => void
+  onPointerUp?: (e: any) => void
   onClick?: (e: any) => void
 }
 
-export default function Court({ onPointerMove, onClick }: CourtProps) {
+export default function Court({ onPointerMove, onPointerUp, onClick }: CourtProps) {
   const darkMode = useStore((s) => s.darkMode)
   const showOpponentCourt = useStore((s) => s.showOpponentCourt)
 
@@ -156,6 +157,7 @@ export default function Court({ onPointerMove, onClick }: CourtProps) {
         visible={false}
         position={[(SET_X_MIN + SET_X_MAX) / 2, 0, (SET_Z_MIN + SET_Z_MAX) / 2]}
         onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
         onClick={onClick}
       >
         <planeGeometry args={[SET_X_MAX - SET_X_MIN, SET_Z_MAX - SET_Z_MIN]} />

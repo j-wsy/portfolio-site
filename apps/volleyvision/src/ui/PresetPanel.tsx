@@ -29,7 +29,7 @@ export default function PresetPanel({ onSelectItem }: PresetPanelProps) {
   const addPresetToFolder = useStore((s) => s.addPresetToFolder)
   const setActiveFolderId = useStore((s) => s.setActiveFolderId)
   const setPresetsOpen = useStore((s) => s.setPresetsOpen)
-  const settingsOpen = useStore((s) => s.settingsOpen)
+  const topPanel = useStore((s) => s.topPanel)
 
   const fileRef = useRef<HTMLInputElement>(null)
   const [importError, setImportError] = useState<string | null>(null)
@@ -142,10 +142,10 @@ export default function PresetPanel({ onSelectItem }: PresetPanelProps) {
 
   return (
     <div
-      className={`fixed bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-xl z-30 select-none flex flex-col ${
+      className={`fixed bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-xl select-none flex flex-col ${
         isMobile
-          ? `left-2 right-2 ${settingsOpen ? 'top-24 max-h-[28vh]' : 'top-24 max-h-[56vh]'} rounded-xl overflow-hidden`
-          : 'rounded-xl max-h-[76vh]'
+          ? `left-2 right-2 top-24 max-h-[56vh] rounded-xl overflow-hidden ${topPanel === 'presets' ? 'z-40' : 'z-30'}`
+          : 'z-30 rounded-xl max-h-[76vh]'
       }`}
       style={isMobile ? undefined : { left: pos.x, top: pos.y, width: PANEL_W }}
     >
@@ -173,13 +173,13 @@ export default function PresetPanel({ onSelectItem }: PresetPanelProps) {
             onClick={exportPresets}
             className="flex-1 py-1.5 rounded-lg text-sm font-medium border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
           >
-            Export all
+            Export Presets (JSON)
           </button>
           <button
             onClick={() => fileRef.current?.click()}
             className="flex-1 py-1.5 rounded-lg text-sm font-medium border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
           >
-            Import
+            Import (JSON)
           </button>
           <input ref={fileRef} type="file" accept=".json" className="hidden" onChange={handleImport} />
         </div>
@@ -255,6 +255,9 @@ export default function PresetPanel({ onSelectItem }: PresetPanelProps) {
                       className={`flex-1 truncate text-sm font-semibold ${isFolderActive ? 'text-blue-700 dark:text-blue-300' : 'text-gray-900 dark:text-white'}`}
                     >
                       {folder.name}
+                      {folder.id === UNSORTED_FOLDER_ID && (
+                        <span className="ml-1 text-xs font-normal italic text-gray-400">Tap here to visualize all presets simultaneously!</span>
+                      )}
                     </span>
                   )}
                   <span className="text-xs text-gray-400">{folderPresets.length}</span>

@@ -30,6 +30,8 @@ export default function ActionBar({
   const setSettingsOpen  = useStore((s) => s.setSettingsOpen)
   const presetsOpen      = useStore((s) => s.presetsOpen)
   const setPresetsOpen   = useStore((s) => s.setPresetsOpen)
+  const instructionsOpen = useStore((s) => s.instructionsOpen)
+  const setInstructionsOpen = useStore((s) => s.setInstructionsOpen)
   const savePreset       = useStore((s) => s.savePreset)
 
   const [saving, setSaving] = useState(false)
@@ -80,7 +82,7 @@ export default function ActionBar({
         {/* Place Set section */}
         <button
           onClick={onCreateNewSet}
-          className={`${placingMode ? btnDanger : btnPrimary} ${btnSize(isMobile)} ${isMobile ? 'flex-[1.35] min-w-0' : ''}`}
+          className={`${placingMode ? btnDanger : btnPrimary} ${btnSize(isMobile)} ${isMobile ? 'flex-[1.05] min-w-0' : ''}`}
         >
           {placingMode ? 'Cancel' : (isMobile ? 'New Set' : 'Create New Set')}
         </button>
@@ -113,7 +115,7 @@ export default function ActionBar({
               </button>
             </div>
           )}
-          <button onClick={handleSaveClick} className={`${btnNeutral} ${btnSize(isMobile)} ${isMobile ? 'min-w-0' : ''}`}>{isMobile ? 'Save' : 'Save Set'}</button>
+          <button onClick={handleSaveClick} className={`${saving ? btnActive : btnNeutral} ${btnSize(isMobile)} ${isMobile ? 'min-w-0' : ''}`}>{isMobile ? 'Save' : 'Save Set'}</button>
         </div>
 
         <button
@@ -121,6 +123,19 @@ export default function ActionBar({
           className={`${presetsOpen ? btnActive : btnNeutral} ${btnSize(isMobile)} ${isMobile ? 'min-w-0' : ''}`}
         >
           Presets
+        </button>
+
+        <button
+          onClick={() => setInstructionsOpen(!instructionsOpen)}
+          aria-label="Instructions"
+          title="Instructions"
+          className={`${instructionsOpen ? btnActive : btnNeutral} ${isMobile ? 'px-2.5 py-2' : 'px-4 py-3'}`}
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true" className={`${isMobile ? 'h-5 w-5' : 'h-6 w-6'}`} fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M9.5 9a2.6 2.6 0 0 1 5 1c0 1.8-2.5 2.1-2.5 4" />
+            <path d="M12 17h.01" />
+          </svg>
         </button>
 
         <button
