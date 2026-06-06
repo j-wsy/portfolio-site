@@ -144,7 +144,7 @@ export default function PresetPanel({ onSelectItem }: PresetPanelProps) {
     <div
       className={`fixed bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-xl z-30 select-none flex flex-col ${
         isMobile
-          ? `left-2 right-2 ${settingsOpen ? 'top-24 max-h-[28vh]' : 'bottom-32 max-h-[52vh]'} rounded-xl overflow-hidden`
+          ? `left-2 right-2 ${settingsOpen ? 'top-24 max-h-[28vh]' : 'top-24 max-h-[56vh]'} rounded-xl overflow-hidden`
           : 'rounded-xl max-h-[76vh]'
       }`}
       style={isMobile ? undefined : { left: pos.x, top: pos.y, width: PANEL_W }}

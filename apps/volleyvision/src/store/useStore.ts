@@ -128,8 +128,8 @@ export const useStore = create<AppStore>()(
 
       mode: 'setting',
 
-      settingsOpen: true,
-      presetsOpen: true,
+      settingsOpen: false,
+      presetsOpen: false,
       units: 'metric',
       activePresetId: null,
       activeFolderId: UNSORTED_FOLDER_ID,
