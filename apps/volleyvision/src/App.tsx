@@ -81,6 +81,7 @@ export default function App() {
   const [interactionLock, setInteractionLock] = useState(0)
   const [activeAdjustment, setActiveAdjustment] = useState<AdjustmentAsset | null>(null)
   const [instructionsPos, setInstructionsPos] = useState({ x: 16, y: 64 })
+  const instructionsPosRef = useRef(instructionsPos)
   const savedStateKeyRef = useRef<string | null>(null)
   const instructionsDragging = useRef(false)
   const instructionsDragStart = useRef({ mx: 0, my: 0, px: 0, py: 0 })
@@ -165,11 +166,13 @@ export default function App() {
     }
   }, [updateInstructionsPos])
 
+  useEffect(() => { instructionsPosRef.current = instructionsPos }, [instructionsPos])
+
   useEffect(() => {
-    const onResize = () => updateInstructionsPos(instructionsPos)
+    const onResize = () => updateInstructionsPos(instructionsPosRef.current)
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
-  }, [instructionsPos, updateInstructionsPos])
+  }, [updateInstructionsPos])
 
   const currentStateKey = useMemo(() => JSON.stringify({
     setterPosition,
@@ -367,11 +370,9 @@ export default function App() {
   const ballIndicatorPos = placingMode && !landingPosition
     ? ghostPos
     : (landingPosition as [number, number, number] | null)
-  const assignedPresetIds = new Set(
-    folders
-      .filter((folder) => folder.id !== UNSORTED_FOLDER_ID)
-      .flatMap((folder) => folder.presetIds)
-  )
+  const assignedPresetIds = useMemo(() =>
+    new Set(folders.filter((folder) => folder.id !== UNSORTED_FOLDER_ID).flatMap((folder) => folder.presetIds))
+  , [folders])
   const activeFolderPresetCount = activeFolderId === UNSORTED_FOLDER_ID
     ? presets.filter((preset) => !assignedPresetIds.has(preset.id)).length
     : (activeFolder?.presetIds.length ?? 0)
@@ -385,7 +386,7 @@ export default function App() {
         <div className="absolute top-3 left-3 right-3 z-10 pointer-events-none select-none">
           <div className="flex flex-shrink-0 items-baseline gap-2">
             <span className="text-xl font-semibold text-white/90 tracking-wide">VolleyVision</span>
-            <span className="text-xl font-medium text-white/45">v6.1</span>
+            <span className="text-xl font-medium text-white/45">v6.2</span>
           </div>
           {selectionHeading && (
             <div className="mt-1 max-w-full text-left leading-tight">
@@ -404,7 +405,7 @@ export default function App() {
         <>
           <div className="absolute top-4 left-5 z-10 pointer-events-none select-none flex items-baseline gap-2">
             <span className="text-2xl font-semibold text-white/90 tracking-wide">VolleyVision</span>
-            <span className="text-2xl font-medium text-white/45">v6.1</span>
+            <span className="text-2xl font-medium text-white/45">v6.2</span>
           </div>
 
           {selectionHeading && (

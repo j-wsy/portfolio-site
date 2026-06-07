@@ -75,7 +75,7 @@ export default function SettingsPanel() {
     const onResize = () => updatePos(_pos ?? pos)
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
-  }, [pos])
+  }, [])
 
   const sectionLabel = 'text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2'
   const btnBase = 'py-1.5 rounded-lg text-sm font-medium border transition-colors'
