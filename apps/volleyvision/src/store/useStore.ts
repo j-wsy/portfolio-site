@@ -128,6 +128,16 @@ function ensureUnsortedFolder(folders: Folder[]): Folder[] {
     : [{ id: UNSORTED_FOLDER_ID, name: UNSORTED_FOLDER_NAME, presetIds: [], maxReachM: null }, ...cleaned]
 }
 
+function hasPresetData(presets: Preset[] | undefined): presets is Preset[] {
+  return Array.isArray(presets) && presets.length > 0
+}
+
+function hasFolderData(folders: Folder[] | undefined): folders is Folder[] {
+  return Array.isArray(folders) && folders.some((folder) =>
+    folder.id !== UNSORTED_FOLDER_ID || folder.presetIds.length > 0 || typeof folder.maxReachM === 'number'
+  )
+}
+
 function normalizeSetter(setter: SetterConfig): SetterConfig {
   return {
     ...setter,
@@ -393,7 +403,7 @@ export const useStore = create<AppStore>()(
       exportData: () => {
         const s = get()
         exportDataToFile({
-          appVersion: 'v6',
+          appVersion: 'v6.1',
           presets: s.presets,
           folders: ensureUnsortedFolder(s.folders),
           settings: {
@@ -470,10 +480,13 @@ export const useStore = create<AppStore>()(
       name: 'volleyvision-store',
       merge: (persisted, current) => {
         const persistedState = persisted as Partial<AppStore> | undefined
+        const presets = hasPresetData(persistedState?.presets) ? persistedState.presets : current.presets
+        const folders = hasFolderData(persistedState?.folders) ? persistedState.folders : current.folders
         return {
           ...current,
           ...persistedState,
-          folders: ensureUnsortedFolder(persistedState?.folders ?? current.folders),
+          presets,
+          folders: ensureUnsortedFolder(folders),
           setter: normalizeSetter(persistedState?.setter ?? current.setter),
           lockHitzoneToReach: persistedState?.lockHitzoneToReach ?? current.lockHitzoneToReach,
           hitzoneMustStayInCourt: persistedState?.hitzoneMustStayInCourt ?? current.hitzoneMustStayInCourt,

@@ -27,7 +27,8 @@ export function loadPresetsFromStorage(): Preset[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return STARTER_PRESETS
-    return JSON.parse(raw) as Preset[]
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed as Preset[] : STARTER_PRESETS
   } catch {
     return STARTER_PRESETS
   }

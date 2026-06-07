@@ -385,7 +385,7 @@ export default function App() {
         <div className="absolute top-3 left-3 right-3 z-10 pointer-events-none select-none">
           <div className="flex flex-shrink-0 items-baseline gap-2">
             <span className="text-xl font-semibold text-white/90 tracking-wide">VolleyVision</span>
-            <span className="text-xl font-medium text-white/45">v6</span>
+            <span className="text-xl font-medium text-white/45">v6.1</span>
           </div>
           {selectionHeading && (
             <div className="mt-1 max-w-full text-left leading-tight">
@@ -404,7 +404,7 @@ export default function App() {
         <>
           <div className="absolute top-4 left-5 z-10 pointer-events-none select-none flex items-baseline gap-2">
             <span className="text-2xl font-semibold text-white/90 tracking-wide">VolleyVision</span>
-            <span className="text-2xl font-medium text-white/45">v6</span>
+            <span className="text-2xl font-medium text-white/45">v6.1</span>
           </div>
 
           {selectionHeading && (
