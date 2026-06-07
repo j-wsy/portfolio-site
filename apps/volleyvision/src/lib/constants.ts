@@ -35,8 +35,12 @@ export const FIVB_WOMEN_NET = 2.24
 export const DEFAULT_NET_HEIGHT = FIVB_MEN_NET
 
 export const MIN_SETTER_HEIGHT = 1.0
-export const DEFAULT_SETTER_HEIGHT = 1.80
+export const DEFAULT_SETTER_HEIGHT = 1.83
+export const SET_CONTACT_MULTIPLIER = 1.15
+export const SETTER_JUMP_HEIGHT = 0.254
 export const DEFAULT_PEAK_HEIGHT = 3.5
 export const MAX_PEAK_HEIGHT = 8.0
+export const MIN_REACH_HEIGHT = 1.0
+export const MAX_REACH_HEIGHT = 4.0
 
 export const ARC_STEPS = 60

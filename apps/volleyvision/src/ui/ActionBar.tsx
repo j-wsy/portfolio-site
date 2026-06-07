@@ -40,7 +40,7 @@ export default function ActionBar({
   const nameInputRef = useRef<HTMLInputElement>(null)
 
   const handleSaveClick = () => {
-    if (placingMode && !landingPosition) {
+    if (!landingPosition) {
       setSaving(false)
       setPlacementWarning(true)
       window.setTimeout(() => setPlacementWarning(false), 1800)

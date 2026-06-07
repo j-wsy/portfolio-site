@@ -1,7 +1,27 @@
-import type { Folder, Preset } from '../store/useStore'
+import type { Folder, NetConfig, Preset, SetterConfig } from '../store/useStore'
 import { STARTER_PRESETS } from './starterData'
+import type { Units } from './units'
 
 const STORAGE_KEY = 'volleyvision-presets'
+
+export interface AppDataSettings {
+  units: Units
+  setter: SetterConfig
+  net: NetConfig
+  showOpponentCourt: boolean
+  lockHitzoneToReach: boolean
+  hitzoneMustStayInCourt: boolean
+}
+
+export interface AppDataPayload {
+  schemaVersion: 2
+  app: 'VolleyVision'
+  appVersion: string
+  exportedAt: string
+  presets: Preset[]
+  folders: Folder[]
+  settings: AppDataSettings
+}
 
 export function loadPresetsFromStorage(): Preset[] {
   try {
@@ -17,22 +37,32 @@ export function savePresetsToStorage(presets: Preset[]): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(presets))
 }
 
-export function exportPresetsToFile(presets: Preset[], folders: Folder[]): void {
-  const payload = JSON.stringify({ schemaVersion: 1, presets, folders }, null, 2)
-  const blob = new Blob([payload], { type: 'application/json' })
+export function exportDataToFile(payload: Omit<AppDataPayload, 'schemaVersion' | 'app' | 'exportedAt'>): void {
+  const data: AppDataPayload = {
+    schemaVersion: 2,
+    app: 'VolleyVision',
+    exportedAt: new Date().toISOString(),
+    ...payload,
+  }
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = 'volleyvision-presets.json'
+  a.download = 'volleyvision-data.json'
   a.click()
   URL.revokeObjectURL(url)
 }
 
-export function parseImportedPresets(json: string): { presets: Preset[]; folders?: Folder[]; error?: string } {
+export function parseImportedPresets(json: string): {
+  presets: Preset[]
+  folders?: Folder[]
+  settings?: Partial<AppDataSettings>
+  error?: string
+} {
   try {
     const parsed = JSON.parse(json)
-    if (parsed.schemaVersion !== 1) {
-      return { presets: [], error: 'Invalid schema version - expected schemaVersion: 1' }
+    if (parsed.schemaVersion !== 1 && parsed.schemaVersion !== 2) {
+      return { presets: [], error: 'Invalid schema version - expected schemaVersion: 1 or 2' }
     }
     if (!Array.isArray(parsed.presets)) {
       return { presets: [], error: 'Invalid format: presets must be an array' }
@@ -40,6 +70,7 @@ export function parseImportedPresets(json: string): { presets: Preset[]; folders
     return {
       presets: parsed.presets as Preset[],
       folders: Array.isArray(parsed.folders) ? parsed.folders as Folder[] : undefined,
+      settings: parsed.schemaVersion === 2 && parsed.settings ? parsed.settings as Partial<AppDataSettings> : undefined,
     }
   } catch {
     return { presets: [], error: 'Failed to parse JSON - check the file is valid' }

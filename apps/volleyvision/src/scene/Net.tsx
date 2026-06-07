@@ -6,7 +6,7 @@ const POLE_R = 0.04
 const POLE_EXTRA = 0.20
 const ANTENNA_R = 0.016
 const CABLE_R = 0.012
-const ANTENNA_SEGMENTS = 8
+const ANTENNA_STRIPE_H = 0.10
 
 export default function Net() {
   const netHeight = useStore((s) => s.net.heightM)
@@ -19,6 +19,7 @@ export default function Net() {
   const poleH = netHeight + POLE_EXTRA
 
   const antennaH = NET_DEPTH + ANTENNA_ABOVE
+  const antennaSegments = Math.round(antennaH / ANTENNA_STRIPE_H)
   const antennaCenterY = netBottom + antennaH / 2
 
   return (
@@ -46,13 +47,14 @@ export default function Net() {
       {/* antennas at court edge Z=+/-hw */}
       {([-hw, hw] as number[]).map((z) => (
         <group key={z} position={[0, netBottom, z]}>
-          {Array.from({ length: ANTENNA_SEGMENTS }, (_, i) => {
-            const segmentH = antennaH / ANTENNA_SEGMENTS
+          {Array.from({ length: antennaSegments }, (_, i) => {
+            const segmentH = antennaH / antennaSegments
             const y = segmentH * i + segmentH / 2
+            const topFirstIndex = antennaSegments - 1 - i
             return (
               <mesh key={i} position={[0, y, 0]}>
                 <cylinderGeometry args={[ANTENNA_R, ANTENNA_R, segmentH, 8]} />
-                <meshStandardMaterial color={i % 2 === 0 ? '#cc2222' : '#f8fafc'} />
+                <meshStandardMaterial color={topFirstIndex % 2 === 0 ? '#cc2222' : '#f8fafc'} />
               </mesh>
             )
           })}

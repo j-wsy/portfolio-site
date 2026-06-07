@@ -1,13 +1,13 @@
 import { useRef, useState, useEffect } from 'react'
 import { useStore } from '../store/useStore'
-import { FIVB_MEN_NET, FIVB_WOMEN_NET, MIN_SETTER_HEIGHT } from '../lib/constants'
+import { FIVB_MEN_NET, FIVB_WOMEN_NET, MIN_SETTER_HEIGHT, SETTER_JUMP_HEIGHT } from '../lib/constants'
 import { fmtHeight, fmtNetHeight } from '../lib/units'
 import { useIsMobile } from '../lib/useIsMobile'
 
 // Persists position across open/close cycles within the same session
 let _pos: { x: number; y: number } | null = null
 
-const PANEL_W = 288  // w-72 = 288px
+const PANEL_W = 320
 const PANEL_MARGIN = 16
 const MAX_SETTER_HEIGHT = 3.0
 
@@ -26,17 +26,25 @@ export default function SettingsPanel() {
   const updateNet = useStore((s) => s.updateNet)
   const showOpponentCourt = useStore((s) => s.showOpponentCourt)
   const toggleOpponentCourt = useStore((s) => s.toggleOpponentCourt)
+  const lockHitzoneToReach = useStore((s) => s.lockHitzoneToReach)
+  const toggleLockHitzoneToReach = useStore((s) => s.toggleLockHitzoneToReach)
+  const hitzoneMustStayInCourt = useStore((s) => s.hitzoneMustStayInCourt)
+  const toggleHitzoneMustStayInCourt = useStore((s) => s.toggleHitzoneMustStayInCourt)
   const setSettingsOpen = useStore((s) => s.setSettingsOpen)
   const topPanel = useStore((s) => s.topPanel)
   const units = useStore((s) => s.units)
   const toggleUnits = useStore((s) => s.toggleUnits)
+  const exportData = useStore((s) => s.exportData)
+  const importData = useStore((s) => s.importData)
 
   const [showCustomNet, setShowCustomNet] = useState(false)
   const [heightText, setHeightText] = useState('')
+  const [importError, setImportError] = useState<string | null>(null)
   const [pos, setPos] = useState<{ x: number; y: number }>(() =>
     _pos ?? { x: Math.max(16, window.innerWidth - PANEL_W - 20), y: 16 }
   )
 
+  const fileRef = useRef<HTMLInputElement>(null)
   const dragging = useRef(false)
   const dragStart = useRef({ mx: 0, my: 0, px: 0, py: 0 })
 
@@ -92,12 +100,28 @@ export default function SettingsPanel() {
     updateSetter({ heightM: Math.min(MAX_SETTER_HEIGHT, Math.max(MIN_SETTER_HEIGHT, meters)) })
   }
 
+  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      try {
+        importData(ev.target!.result as string)
+        setImportError(null)
+      } catch (err: any) {
+        setImportError(err.message ?? 'Import failed')
+      }
+    }
+    reader.readAsText(file)
+    e.target.value = ''
+  }
+
   return (
     <div
-      className={`fixed bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-xl select-none ${
+      className={`fixed bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-xl select-none flex flex-col ${
         isMobile
-          ? `left-2 right-2 top-24 max-h-[56vh] rounded-xl overflow-hidden ${topPanel === 'settings' ? 'z-40' : 'z-30'}`
-          : 'z-30 rounded-xl'
+          ? `left-2 right-2 top-20 bottom-24 rounded-xl overflow-hidden ${topPanel === 'settings' ? 'z-40' : 'z-30'}`
+          : 'z-30 rounded-xl max-h-[calc(100vh-2rem)]'
       }`}
       style={isMobile ? undefined : { left: pos.x, top: pos.y, width: PANEL_W }}
     >
@@ -121,7 +145,7 @@ export default function SettingsPanel() {
         </button>
       </div>
 
-      <div className="p-4 flex max-h-[calc(56vh-3.25rem)] flex-col gap-5 overflow-y-auto">
+      <div className={`${isMobile ? 'flex-1 min-h-0 p-3 gap-4' : 'max-h-[calc(100vh-5.25rem)] p-4 gap-5'} flex flex-col overflow-y-auto`}>
 
         {/* Units */}
         <div>
@@ -190,8 +214,8 @@ export default function SettingsPanel() {
         {/* Setter */}
         <div>
           <div className={sectionLabel}>Setter</div>
-          <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">
-            Height - {fmtHeight(setter.heightM, units)}
+          <label className="block text-sm text-gray-600 dark:text-gray-400 mb-2">
+            Height (Set contact point = height * 1.15)
           </label>
           <div className="flex items-center gap-2 mb-2">
             <input
@@ -233,7 +257,7 @@ export default function SettingsPanel() {
               onClick={() => updateSetter({ jumpSet: true })}
               className={`flex-1 ${btnBase} ${setter.jumpSet ? btnActive : btnIdle}`}
             >
-              Jump Set
+              Jump Set (+{fmtHeight(SETTER_JUMP_HEIGHT, units)})
             </button>
           </div>
         </div>
@@ -241,13 +265,62 @@ export default function SettingsPanel() {
         {/* Court View */}
         <div>
           <div className={sectionLabel}>Court View</div>
-          <label className="flex items-center justify-between cursor-pointer">
+          <label className="flex items-center justify-between gap-4 cursor-pointer">
             <span className="text-sm text-gray-700 dark:text-gray-300">Show opponent court</span>
             <div className="relative" onClick={toggleOpponentCourt}>
               <div className={`w-10 h-5 rounded-full transition-colors ${showOpponentCourt ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-600'}`} />
               <div className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${showOpponentCourt ? 'translate-x-5' : ''}`} />
             </div>
           </label>
+        </div>
+
+        {/* Hitzone */}
+        <div>
+          <div className={sectionLabel}>Hitzone</div>
+          <div className="flex flex-col gap-3">
+            <label className="flex items-center justify-between gap-4 cursor-pointer">
+              <span className="text-sm text-gray-700 dark:text-gray-300">Lock hitzone to the player's max reach</span>
+              <div className="relative flex-shrink-0" onClick={toggleLockHitzoneToReach}>
+                <div className={`w-10 h-5 rounded-full transition-colors ${lockHitzoneToReach ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-600'}`} />
+                <div className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${lockHitzoneToReach ? 'translate-x-5' : ''}`} />
+              </div>
+            </label>
+            <label className="flex items-center justify-between gap-4 cursor-pointer">
+              <span className="text-sm text-gray-700 dark:text-gray-300">Hitzone must be within your court</span>
+              <div className="relative flex-shrink-0" onClick={toggleHitzoneMustStayInCourt}>
+                <div className={`w-10 h-5 rounded-full transition-colors ${hitzoneMustStayInCourt ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-600'}`} />
+                <div className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${hitzoneMustStayInCourt ? 'translate-x-5' : ''}`} />
+              </div>
+            </label>
+          </div>
+        </div>
+
+        {/* Data */}
+        <div>
+          <div className={sectionLabel}>Data</div>
+          <div className="flex gap-2">
+            <button
+              onClick={exportData}
+              className={`flex-1 ${btnBase} ${btnIdle}`}
+            >
+              Export Data
+            </button>
+            <button
+              onClick={() => fileRef.current?.click()}
+              className={`flex-1 ${btnBase} ${btnIdle}`}
+            >
+              Import Data
+            </button>
+            <input ref={fileRef} type="file" accept=".json" className="hidden" onChange={handleImport} />
+          </div>
+          <p className="mt-2 text-xs text-gray-400">
+            Includes presets, player folders, max reach values, units, net, setter, court, and hitzone settings.
+          </p>
+          {importError && (
+            <div className="mt-2 rounded-lg bg-red-50 p-2 text-xs text-red-500 dark:bg-red-950">
+              {importError}
+            </div>
+          )}
         </div>
 
       </div>
