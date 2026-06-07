@@ -8,8 +8,10 @@ interface BallProps {
   position: [number, number, number]
   draggable?: boolean
   color?: string
+  selected?: boolean
   onDragStart?: () => void
   onDragEnd?: () => void
+  onAdjustmentToggle?: () => void
 }
 
 function clamp(v: number, lo: number, hi: number) {
@@ -22,8 +24,10 @@ export default function Ball({
   position,
   draggable = false,
   color = '#22c55e',
+  selected = false,
   onDragStart,
   onDragEnd,
+  onAdjustmentToggle,
 }: BallProps) {
   const { camera, gl, raycaster } = useThree()
   const setLandingPosition = useStore((s) => s.setLandingPosition)
@@ -31,8 +35,10 @@ export default function Ball({
   const isDragging = useRef(false)
   const hit = useRef(new THREE.Vector3())
   const dragOffset = useRef<[number, number]>([0, 0])
+  const pointerStart = useRef({ x: 0, y: 0, moved: false })
 
   const cursor = draggable ? 'grab' : 'auto'
+  const active = highlighted || selected
 
   const getWorldXZ = (clientX: number, clientY: number): [number, number] | null => {
     const rect = gl.domElement.getBoundingClientRect()
@@ -63,6 +69,7 @@ export default function Ball({
     if (!draggable) return
     e.stopPropagation()
     isDragging.current = true
+    pointerStart.current = { x: e.clientX, y: e.clientY, moved: false }
     setHighlighted(true)
     document.body.style.cursor = 'grabbing'
     const clickXZ = getWorldXZ(e.clientX, e.clientY)
@@ -76,6 +83,9 @@ export default function Ball({
     e.stopPropagation()
     const pos = getWorldXZ(e.clientX, e.clientY)
     if (!pos) return
+    if (Math.hypot(e.clientX - pointerStart.current.x, e.clientY - pointerStart.current.y) > 4) {
+      pointerStart.current.moved = true
+    }
     setLandingPosition([
       clamp(pos[0] + dragOffset.current[0], SET_X_MIN, SET_X_MAX),
       0,
@@ -87,6 +97,7 @@ export default function Ball({
     if (!draggable || !isDragging.current) return
     e.stopPropagation()
     isDragging.current = false
+    if (!pointerStart.current.moved) onAdjustmentToggle?.()
     setHighlighted(false)
     document.body.style.cursor = cursor
     onDragEnd?.()
@@ -114,15 +125,15 @@ export default function Ball({
         onLostPointerCapture={handlePointerCancel}
       >
         <circleGeometry args={[0.49, 48]} />
-        <meshBasicMaterial color={color} transparent opacity={highlighted ? 0.10 : 0} depthWrite={false} />
+        <meshBasicMaterial color={color} transparent opacity={active ? 0.10 : 0} depthWrite={false} />
       </mesh>
 
       <mesh position={[0, 0, 0.007]} raycast={() => {}}>
-        <ringGeometry args={[0.20, highlighted ? 0.50 : 0.44, 48]} />
-        <meshBasicMaterial color={color} transparent opacity={highlighted ? 0.95 : 0.9} depthWrite={false} />
+        <ringGeometry args={[0.20, active ? 0.50 : 0.44, 48]} />
+        <meshBasicMaterial color={color} transparent opacity={active ? 0.95 : 0.9} depthWrite={false} />
       </mesh>
 
-      {highlighted && (
+      {active && (
         <mesh position={[0, 0, 0.006]} raycast={() => {}}>
           <ringGeometry args={[0.48, 0.56, 48]} />
           <meshBasicMaterial color={color} transparent opacity={0.48} depthWrite={false} />

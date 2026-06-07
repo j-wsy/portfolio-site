@@ -1,7 +1,7 @@
 import { MAX_PEAK_HEIGHT, ARC_STEPS } from './constants'
 
 const G = 9.81
-const PEAK_FORWARD_SHIFT = 0.15
+const PEAK_FORWARD_SHIFT = 0.10
 
 function shiftedHorizontalProgress(u: number, peakU: number): number {
   const shiftedPeakU = Math.min(0.85, Math.max(0.15, peakU + PEAK_FORWARD_SHIFT))

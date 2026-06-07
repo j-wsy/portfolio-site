@@ -5,11 +5,17 @@ import {
   DEFAULT_SETTER_HEIGHT,
   DEFAULT_PEAK_HEIGHT,
   MIN_SETTER_HEIGHT,
+  MIN_REACH_HEIGHT,
+  MAX_REACH_HEIGHT,
+  SET_CONTACT_MULTIPLIER,
+  SETTER_JUMP_HEIGHT,
 } from '../lib/constants'
+import { computeArc } from '../lib/projectile'
+import { isHitzoneInAllyCourt, nearestProgressAtReach } from '../lib/hitzone'
 import {
   loadPresetsFromStorage,
   savePresetsToStorage,
-  exportPresetsToFile,
+  exportDataToFile,
   parseImportedPresets,
 } from '../lib/presets'
 import { STARTER_FOLDERS } from '../lib/starterData'
@@ -50,6 +56,7 @@ export interface Folder {
   id: string
   name: string
   presetIds: string[]
+  maxReachM?: number | null
 }
 
 export const UNSORTED_FOLDER_ID = 'unsorted'
@@ -67,6 +74,8 @@ export interface AppStore {
   units: Units
   activePresetId: string | null
   activeFolderId: string | null
+  lockHitzoneToReach: boolean
+  hitzoneMustStayInCourt: boolean
 
   setterPosition: [number, number]
   setter: SetterConfig
@@ -83,6 +92,7 @@ export interface AppStore {
   updateSetter: (patch: Partial<SetterConfig>) => void
   updateNet: (patch: Partial<NetConfig>) => void
   setLandingPosition: (pos: [number, number, number] | null) => void
+  constrainLandingPosition: (pos: [number, number, number]) => [number, number, number]
   setPeakHeight: (h: number) => void
   setContactProgress: (progress: number) => void
   commitTrajectory: () => void
@@ -94,13 +104,16 @@ export interface AppStore {
   loadPreset: (id: string) => void
   deletePreset: (id: string) => void
   renamePreset: (id: string, name: string) => void
-  importPresets: (json: string) => void
-  exportPresets: () => void
+  importData: (json: string) => void
+  exportData: () => void
   createFolder: (name: string) => void
   deleteFolder: (id: string) => void
   renameFolder: (id: string, name: string) => void
+  updateFolderReach: (id: string, maxReachM: number | null) => void
   addPresetToFolder: (presetId: string, folderId: string) => void
   setActiveFolderId: (id: string | null) => void
+  toggleLockHitzoneToReach: () => void
+  toggleHitzoneMustStayInCourt: () => void
 }
 
 function ensureUnsortedFolder(folders: Folder[]): Folder[] {
@@ -112,7 +125,7 @@ function ensureUnsortedFolder(folders: Folder[]): Folder[] {
 
   return cleaned.some((folder) => folder.id === UNSORTED_FOLDER_ID)
     ? cleaned
-    : [{ id: UNSORTED_FOLDER_ID, name: UNSORTED_FOLDER_NAME, presetIds: [] }, ...cleaned]
+    : [{ id: UNSORTED_FOLDER_ID, name: UNSORTED_FOLDER_NAME, presetIds: [], maxReachM: null }, ...cleaned]
 }
 
 function normalizeSetter(setter: SetterConfig): SetterConfig {
@@ -120,6 +133,62 @@ function normalizeSetter(setter: SetterConfig): SetterConfig {
     ...setter,
     heightM: Math.max(MIN_SETTER_HEIGHT, setter.heightM),
   }
+}
+
+function folderForState(s: AppStore): Folder | null {
+  if (s.activeFolderId) return s.folders.find((folder) => folder.id === s.activeFolderId) ?? null
+  const activePresetId = s.activePresetId
+  if (!activePresetId) return null
+  return s.folders.find((folder) => folder.presetIds.includes(activePresetId))
+    ?? s.folders.find((folder) => folder.id === UNSORTED_FOLDER_ID)
+    ?? null
+}
+
+function hitzoneProgressForLanding(s: AppStore, landing: [number, number, number]): number | null {
+  const releaseHeight = s.setter.heightM * SET_CONTACT_MULTIPLIER + (s.setter.jumpSet ? SETTER_JUMP_HEIGHT : 0)
+  const points = computeArc(
+    [s.setterPosition[0], releaseHeight, s.setterPosition[1]],
+    landing,
+    s.trajectoryDraft.peakHeight
+  )
+  if (points.length === 0) return null
+
+  const activeFolder = folderForState(s)
+  const folderReach = activeFolder?.maxReachM
+  const progress = s.lockHitzoneToReach && typeof folderReach === 'number'
+    ? nearestProgressAtReach(points, s.trajectoryDraft.contactProgress, folderReach, false)
+    : s.trajectoryDraft.contactProgress
+  if (progress === null) return null
+  return isHitzoneInAllyCourt(points, progress) ? progress : null
+}
+
+function constrainLandingToHitzoneCourt(s: AppStore, candidate: [number, number, number]): [number, number, number] {
+  if (!s.hitzoneMustStayInCourt) return candidate
+  if (hitzoneProgressForLanding(s, candidate) !== null) return candidate
+
+  const current = s.trajectoryDraft.landingPosition
+  const fallback: [number, number, number] =
+    current && hitzoneProgressForLanding(s, current) !== null
+      ? current
+      : [Math.max(candidate[0], 0.1), candidate[1], candidate[2]]
+
+  if (hitzoneProgressForLanding(s, fallback) === null) return fallback
+
+  let lo = fallback
+  let hi = candidate
+  for (let i = 0; i < 16; i++) {
+    const mid: [number, number, number] = [
+      (lo[0] + hi[0]) / 2,
+      0,
+      (lo[2] + hi[2]) / 2,
+    ]
+    if (hitzoneProgressForLanding(s, mid) !== null) {
+      lo = mid
+    } else {
+      hi = mid
+    }
+  }
+  return lo
 }
 
 const defaultTrajectory: TrajectoryDraft = {
@@ -143,9 +212,11 @@ export const useStore = create<AppStore>()(
       units: 'metric',
       activePresetId: null,
       activeFolderId: null,
+      lockHitzoneToReach: true,
+      hitzoneMustStayInCourt: true,
 
-      setterPosition: [3, 0],
-      setter: { heightM: DEFAULT_SETTER_HEIGHT, jumpSet: false },
+      setterPosition: [1.5, -3],
+      setter: { heightM: DEFAULT_SETTER_HEIGHT, jumpSet: true },
       net: { heightM: DEFAULT_NET_HEIGHT },
       trajectoryDraft: defaultTrajectory,
 
@@ -162,8 +233,13 @@ export const useStore = create<AppStore>()(
         set((s) => ({ net: { ...s.net, ...patch } })),
       setLandingPosition: (pos) =>
         set((s) => ({
-          trajectoryDraft: { ...s.trajectoryDraft, landingPosition: pos, committed: false },
+          trajectoryDraft: {
+            ...s.trajectoryDraft,
+            landingPosition: pos ? constrainLandingToHitzoneCourt(s, pos) : null,
+            committed: false,
+          },
         })),
+      constrainLandingPosition: (pos) => constrainLandingToHitzoneCourt(get(), pos),
       setPeakHeight: (h) =>
         set((s) => ({
           trajectoryDraft: { ...s.trajectoryDraft, peakHeight: h },
@@ -189,6 +265,7 @@ export const useStore = create<AppStore>()(
       savePreset: (name, folderId) => {
         const s = get()
         const { landingPosition, peakHeight, contactProgress } = s.trajectoryDraft
+        if (!landingPosition) return
         const id = Date.now().toString(36)
         const targetFolderId = folderId ?? s.activeFolderId ?? UNSORTED_FOLDER_ID
         const folders = ensureUnsortedFolder(s.folders)
@@ -201,7 +278,7 @@ export const useStore = create<AppStore>()(
           setter: { ...s.setter },
           net: { ...s.net },
           trajectory: {
-            landingPosition: landingPosition ? [landingPosition[0], landingPosition[2]] : [0, 0],
+            landingPosition: [landingPosition[0], landingPosition[2]],
             peakHeight,
             contactProgress,
           },
@@ -259,7 +336,7 @@ export const useStore = create<AppStore>()(
         set({
           presets: updatedPresets,
           folders: updatedFolders,
-          ...(wasActive ? { activePresetId: null } : {}),
+          ...(wasActive ? { activePresetId: null, activeFolderId: null, trajectoryDraft: { ...defaultTrajectory } } : {}),
         })
       },
 
@@ -271,8 +348,8 @@ export const useStore = create<AppStore>()(
         set({ presets: updatedPresets })
       },
 
-      importPresets: (json) => {
-        const { presets: incoming, folders: incomingFolders, error } = parseImportedPresets(json)
+      importData: (json) => {
+        const { presets: incoming, folders: incomingFolders, settings, error } = parseImportedPresets(json)
         if (error) throw new Error(error)
         const s = get()
         const existing = s.presets
@@ -280,33 +357,63 @@ export const useStore = create<AppStore>()(
         const merged = [...existing, ...incoming.filter((p) => !existingIds.has(p.id))]
         savePresetsToStorage(merged)
 
-        const folderIds = new Set(s.folders.map((folder) => folder.id))
+        const validPresetIds = new Set(merged.map((preset) => preset.id))
+        const incomingFoldersById = new Map(
+          (incomingFolders ?? []).map((folder) => [
+            folder.id,
+            {
+              ...folder,
+              presetIds: folder.presetIds.filter((id) => validPresetIds.has(id)),
+            },
+          ])
+        )
+        const existingFolderIds = new Set(s.folders.map((folder) => folder.id))
         const mergedFolders = incomingFolders
           ? [
-              ...s.folders,
-              ...incomingFolders
-                .filter((folder) => folder.id !== UNSORTED_FOLDER_ID && !folderIds.has(folder.id))
-                .map((folder) => ({
-                  ...folder,
-                  presetIds: folder.presetIds.filter((id) => merged.some((preset) => preset.id === id)),
-                })),
+              ...s.folders.map((folder) => incomingFoldersById.get(folder.id) ?? folder),
+              ...Array.from(incomingFoldersById.values()).filter((folder) => !existingFolderIds.has(folder.id)),
             ]
           : s.folders
 
-        set({ presets: merged, folders: ensureUnsortedFolder(mergedFolders) })
+        set({
+          presets: merged,
+          folders: ensureUnsortedFolder(mergedFolders),
+          activePresetId: null,
+          activeFolderId: null,
+          trajectoryDraft: { ...defaultTrajectory },
+          ...(settings?.units === 'metric' || settings?.units === 'imperial' ? { units: settings.units } : {}),
+          ...(settings?.setter ? { setter: normalizeSetter(settings.setter) } : {}),
+          ...(settings?.net ? { net: { ...settings.net } } : {}),
+          ...(typeof settings?.showOpponentCourt === 'boolean' ? { showOpponentCourt: settings.showOpponentCourt } : {}),
+          ...(typeof settings?.lockHitzoneToReach === 'boolean' ? { lockHitzoneToReach: settings.lockHitzoneToReach } : {}),
+          ...(typeof settings?.hitzoneMustStayInCourt === 'boolean' ? { hitzoneMustStayInCourt: settings.hitzoneMustStayInCourt } : {}),
+        })
       },
 
-      exportPresets: () => {
+      exportData: () => {
         const s = get()
-        exportPresetsToFile(s.presets, ensureUnsortedFolder(s.folders))
+        exportDataToFile({
+          appVersion: 'v6',
+          presets: s.presets,
+          folders: ensureUnsortedFolder(s.folders),
+          settings: {
+            units: s.units,
+            setter: s.setter,
+            net: s.net,
+            showOpponentCourt: s.showOpponentCourt,
+            lockHitzoneToReach: s.lockHitzoneToReach,
+            hitzoneMustStayInCourt: s.hitzoneMustStayInCourt,
+          },
+        })
       },
 
       createFolder: (name) => {
         const id = Date.now().toString(36) + '_f'
         set((s) => ({
-          folders: [...ensureUnsortedFolder(s.folders), { id, name, presetIds: [] }],
+          folders: [...ensureUnsortedFolder(s.folders), { id, name, presetIds: [], maxReachM: null }],
           activeFolderId: id,
           activePresetId: null,
+          trajectoryDraft: { ...defaultTrajectory },
         }))
       },
 
@@ -314,7 +421,7 @@ export const useStore = create<AppStore>()(
         if (id === UNSORTED_FOLDER_ID) return
         set((s) => ({
           folders: ensureUnsortedFolder(s.folders).filter((f) => f.id !== id),
-          ...(s.activeFolderId === id ? { activeFolderId: null, activePresetId: null } : {}),
+          ...(s.activeFolderId === id ? { activeFolderId: null, activePresetId: null, trajectoryDraft: { ...defaultTrajectory } } : {}),
         }))
       },
 
@@ -322,6 +429,17 @@ export const useStore = create<AppStore>()(
         if (id === UNSORTED_FOLDER_ID) return
         set((s) => ({
           folders: ensureUnsortedFolder(s.folders).map((f) => (f.id === id ? { ...f, name } : f)),
+        }))
+      },
+
+      updateFolderReach: (id, maxReachM) => {
+        const normalized = maxReachM === null
+          ? null
+          : Math.min(MAX_REACH_HEIGHT, Math.max(MIN_REACH_HEIGHT, maxReachM))
+        set((s) => ({
+          folders: ensureUnsortedFolder(s.folders).map((f) =>
+            f.id === id ? { ...f, maxReachM: normalized } : f
+          ),
         }))
       },
 
@@ -342,6 +460,11 @@ export const useStore = create<AppStore>()(
         activePresetId: null,
         trajectoryDraft: { ...defaultTrajectory },
       }),
+
+      toggleLockHitzoneToReach: () =>
+        set((s) => ({ lockHitzoneToReach: !s.lockHitzoneToReach })),
+      toggleHitzoneMustStayInCourt: () =>
+        set((s) => ({ hitzoneMustStayInCourt: !s.hitzoneMustStayInCourt })),
     }),
     {
       name: 'volleyvision-store',
@@ -352,6 +475,8 @@ export const useStore = create<AppStore>()(
           ...persistedState,
           folders: ensureUnsortedFolder(persistedState?.folders ?? current.folders),
           setter: normalizeSetter(persistedState?.setter ?? current.setter),
+          lockHitzoneToReach: persistedState?.lockHitzoneToReach ?? current.lockHitzoneToReach,
+          hitzoneMustStayInCourt: persistedState?.hitzoneMustStayInCourt ?? current.hitzoneMustStayInCourt,
           activeFolderId: persistedState?.activeFolderId === UNSORTED_FOLDER_ID
             ? null
             : (persistedState?.activeFolderId ?? current.activeFolderId),
@@ -364,6 +489,8 @@ export const useStore = create<AppStore>()(
         folders: s.folders,
         showOpponentCourt: s.showOpponentCourt,
         units: s.units,
+        lockHitzoneToReach: s.lockHitzoneToReach,
+        hitzoneMustStayInCourt: s.hitzoneMustStayInCourt,
       }),
     }
   )

@@ -2,6 +2,7 @@ import { useMemo, useRef, useState, useEffect } from 'react'
 import { useStore, UNSORTED_FOLDER_ID } from '../store/useStore'
 import { fmtHeight } from '../lib/units'
 import { useIsMobile } from '../lib/useIsMobile'
+import { MIN_REACH_HEIGHT, MAX_REACH_HEIGHT } from '../lib/constants'
 
 let _pos: { x: number; y: number } | null = null
 
@@ -21,23 +22,21 @@ export default function PresetPanel({ onSelectItem }: PresetPanelProps) {
   const loadPreset = useStore((s) => s.loadPreset)
   const deletePreset = useStore((s) => s.deletePreset)
   const renamePreset = useStore((s) => s.renamePreset)
-  const importPresets = useStore((s) => s.importPresets)
-  const exportPresets = useStore((s) => s.exportPresets)
   const createFolder = useStore((s) => s.createFolder)
   const deleteFolder = useStore((s) => s.deleteFolder)
   const renameFolder = useStore((s) => s.renameFolder)
+  const updateFolderReach = useStore((s) => s.updateFolderReach)
   const addPresetToFolder = useStore((s) => s.addPresetToFolder)
   const setActiveFolderId = useStore((s) => s.setActiveFolderId)
   const setPresetsOpen = useStore((s) => s.setPresetsOpen)
   const topPanel = useStore((s) => s.topPanel)
 
-  const fileRef = useRef<HTMLInputElement>(null)
-  const [importError, setImportError] = useState<string | null>(null)
   const [folderName, setFolderName] = useState('')
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null)
   const [editingPresetId, setEditingPresetId] = useState<string | null>(null)
   const [editText, setEditText] = useState('')
   const [draggedPresetId, setDraggedPresetId] = useState<string | null>(null)
+  const [reachDrafts, setReachDrafts] = useState<Record<string, string>>({})
 
   const [pos, setPos] = useState<{ x: number; y: number }>(() =>
     _pos ?? { x: Math.max(16, window.innerWidth - PANEL_W * 2 - 32), y: 16 }
@@ -103,22 +102,6 @@ export default function PresetPanel({ onSelectItem }: PresetPanelProps) {
     })
   }, [assignedToCustomFolder, folders, presets])
 
-  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = (ev) => {
-      try {
-        importPresets(ev.target!.result as string)
-        setImportError(null)
-      } catch (err: any) {
-        setImportError(err.message ?? 'Import failed')
-      }
-    }
-    reader.readAsText(file)
-    e.target.value = ''
-  }
-
   const handleCreateFolder = () => {
     const name = folderName.trim()
     if (!name) return
@@ -140,11 +123,30 @@ export default function PresetPanel({ onSelectItem }: PresetPanelProps) {
     setEditText('')
   }
 
+  const commitFolderReach = (folderId: string) => {
+    const raw = reachDrafts[folderId]
+    if (raw === undefined) return
+    const trimmed = raw.trim()
+    if (trimmed === '') {
+      updateFolderReach(folderId, null)
+    } else {
+      const value = Number(trimmed)
+      if (Number.isFinite(value)) {
+        updateFolderReach(folderId, units === 'metric' ? value / 100 : value / 39.3701)
+      }
+    }
+    setReachDrafts((drafts) => {
+      const next = { ...drafts }
+      delete next[folderId]
+      return next
+    })
+  }
+
   return (
     <div
       className={`fixed bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-xl select-none flex flex-col ${
         isMobile
-          ? `left-2 right-2 top-24 max-h-[56vh] rounded-xl overflow-hidden ${topPanel === 'presets' ? 'z-40' : 'z-30'}`
+          ? `left-2 right-2 top-20 bottom-24 rounded-xl overflow-hidden ${topPanel === 'presets' ? 'z-40' : 'z-30'}`
           : 'z-30 rounded-xl max-h-[76vh]'
       }`}
       style={isMobile ? undefined : { left: pos.x, top: pos.y, width: PANEL_W }}
@@ -157,7 +159,7 @@ export default function PresetPanel({ onSelectItem }: PresetPanelProps) {
           dragStart.current = { mx: e.clientX, my: e.clientY, px: pos.x, py: pos.y }
         }}
       >
-        <span className="font-semibold text-sm text-gray-900 dark:text-white">Presets</span>
+        <span className="font-semibold text-sm text-gray-900 dark:text-white">Presets & Player Folders</span>
         <button
           className="flex h-7 w-7 items-center justify-center rounded-md bg-red-500 text-sm font-semibold leading-none text-white hover:bg-red-600 transition-colors"
           onMouseDown={(e) => e.stopPropagation()}
@@ -168,29 +170,13 @@ export default function PresetPanel({ onSelectItem }: PresetPanelProps) {
         </button>
       </div>
 
-      <div className="p-4 flex flex-col gap-3 overflow-hidden">
-        <div className="flex gap-2">
-          <button
-            onClick={exportPresets}
-            className="flex-1 py-1.5 rounded-lg text-sm font-medium border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-          >
-            Export Presets (JSON)
-          </button>
-          <button
-            onClick={() => fileRef.current?.click()}
-            className="flex-1 py-1.5 rounded-lg text-sm font-medium border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-          >
-            Import (JSON)
-          </button>
-          <input ref={fileRef} type="file" accept=".json" className="hidden" onChange={handleImport} />
-        </div>
-
+      <div className={`${isMobile ? 'flex-1 min-h-0 p-3' : 'p-4'} flex flex-col gap-3 overflow-hidden`}>
         <div className="flex gap-2">
           <input
             value={folderName}
             onChange={(e) => setFolderName(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') handleCreateFolder() }}
-            placeholder="New folder"
+            placeholder="New player folder"
             className="min-w-0 flex-1 px-2.5 py-1.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-950 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
           />
           <button
@@ -201,22 +187,29 @@ export default function PresetPanel({ onSelectItem }: PresetPanelProps) {
           </button>
         </div>
 
-        {importError && (
-          <div className="text-xs text-red-500 p-2 bg-red-50 dark:bg-red-950 rounded-lg">
-            {importError}
-          </div>
-        )}
-
-        <div className="overflow-y-auto flex flex-col gap-2 pr-1">
+        <div className="min-h-0 overflow-y-auto flex flex-col gap-2 pr-1">
           {presetsByFolder.map(({ folder, presets: folderPresets }) => {
             const isFolderSelected = folder.id === activeFolderId && !activePresetId
             const isFolderExpanded = folder.id === activeFolderId
             const canDeleteFolder = folder.id !== UNSORTED_FOLDER_ID
+            const storedReachValue = typeof folder.maxReachM === 'number'
+              ? units === 'metric'
+                ? String(Math.round(folder.maxReachM * 100))
+                : String(Math.round(folder.maxReachM * 39.3701 * 10) / 10)
+              : ''
+            const reachValue = reachDrafts[folder.id] ?? storedReachValue
 
             return (
               <div key={folder.id} className="flex flex-col gap-1">
-                <button
+                <div
+                  role="button"
+                  tabIndex={0}
                   onClick={() => {
+                    onSelectItem?.()
+                    setActiveFolderId(isFolderSelected ? null : folder.id)
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key !== 'Enter' && e.key !== ' ') return
                     onSelectItem?.()
                     setActiveFolderId(isFolderSelected ? null : folder.id)
                   }}
@@ -247,12 +240,46 @@ export default function PresetPanel({ onSelectItem }: PresetPanelProps) {
                       className="min-w-0 flex-1 px-2 py-1 text-sm rounded-md border border-blue-300 dark:border-blue-700 bg-white dark:bg-gray-950 text-gray-900 dark:text-white"
                     />
                   ) : (
-                    <span className={`flex-1 truncate text-sm font-semibold ${isFolderSelected ? 'text-amber-700 dark:text-amber-300' : 'text-gray-900 dark:text-white'}`}>
-                      {folder.name}
-                      {folder.id === UNSORTED_FOLDER_ID && (
-                        <span className="ml-1 text-xs font-normal text-gray-400">Select folder for simultaneous view</span>
-                      )}
-                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className={`truncate text-sm font-semibold ${isFolderSelected ? 'text-amber-700 dark:text-amber-300' : 'text-gray-900 dark:text-white'}`}>
+                        {folder.name}
+                        {folder.id === UNSORTED_FOLDER_ID && (
+                          <span className="ml-1 text-xs font-normal text-gray-400">Select player folder for simultaneous view</span>
+                        )}
+                      </div>
+                      <label
+                        className="mt-1 flex items-center gap-2 text-xs text-gray-400"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <span className="flex-shrink-0">Max Reach</span>
+                        <input
+                          type="number"
+                          min={units === 'metric' ? MIN_REACH_HEIGHT * 100 : Math.round(MIN_REACH_HEIGHT * 39.3701 * 10) / 10}
+                          max={units === 'metric' ? MAX_REACH_HEIGHT * 100 : Math.round(MAX_REACH_HEIGHT * 39.3701 * 10) / 10}
+                          step={units === 'metric' ? 1 : 0.5}
+                          value={reachValue}
+                          onClick={(e) => e.stopPropagation()}
+                          onMouseDown={(e) => e.stopPropagation()}
+                          onChange={(e) => setReachDrafts((drafts) => ({ ...drafts, [folder.id]: e.target.value }))}
+                          onBlur={() => commitFolderReach(folder.id)}
+                          onKeyDown={(e) => {
+                            e.stopPropagation()
+                            if (e.key === 'Enter') e.currentTarget.blur()
+                            if (e.key === 'Escape') {
+                              setReachDrafts((drafts) => {
+                                const next = { ...drafts }
+                                delete next[folder.id]
+                                return next
+                              })
+                              e.currentTarget.blur()
+                            }
+                          }}
+                          placeholder="-"
+                          className="w-16 rounded-md border border-gray-300 bg-white px-1.5 py-1 text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:border-gray-600 dark:bg-gray-950 dark:text-white"
+                        />
+                        <span>{units === 'metric' ? 'cm' : 'in'}</span>
+                      </label>
+                    </div>
                   )}
                   {isFolderSelected && canDeleteFolder && (
                     <span className="flex items-center gap-1.5">
@@ -269,18 +296,18 @@ export default function PresetPanel({ onSelectItem }: PresetPanelProps) {
                       <span
                         onClick={(e) => { e.stopPropagation(); deleteFolder(folder.id) }}
                         className="flex h-6 w-6 items-center justify-center rounded-md bg-red-500 text-sm font-semibold leading-none text-white hover:bg-red-600 transition-colors"
-                        aria-label="Delete folder"
+                        aria-label="Delete player folder"
                       >
                         x
                       </span>
                     </span>
                   )}
-                </button>
+                </div>
 
                 {isFolderExpanded && (
                   <div className="ml-3 border-l border-gray-200 dark:border-gray-700 pl-3 flex flex-col gap-1.5">
                     {folderPresets.length === 0 && (
-                      <p className="text-sm text-gray-400 py-3">No presets in this folder.</p>
+                      <p className="text-sm text-gray-400 py-3">No presets in this player folder.</p>
                     )}
                     {folderPresets.map((preset) => {
                       const isActive = preset.id === activePresetId

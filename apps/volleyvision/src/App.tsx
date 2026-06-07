@@ -4,8 +4,24 @@ import { OrbitControls } from '@react-three/drei'
 import * as THREE from 'three'
 
 import { UNSORTED_FOLDER_ID, useStore } from './store/useStore'
-import { DEFAULT_PEAK_HEIGHT, SET_X_MIN, SET_X_MAX, SET_Z_MIN, SET_Z_MAX } from './lib/constants'
+import {
+  ALLY_X_MAX,
+  ALLY_X_MIN,
+  ALLY_Z_MAX,
+  ALLY_Z_MIN,
+  DEFAULT_PEAK_HEIGHT,
+  MAX_PEAK_HEIGHT,
+  SET_CONTACT_MULTIPLIER,
+  SET_X_MAX,
+  SET_X_MIN,
+  SET_Z_MAX,
+  SET_Z_MIN,
+  SETTER_JUMP_HEIGHT,
+} from './lib/constants'
 import { useIsMobile } from './lib/useIsMobile'
+import { fmtHeight } from './lib/units'
+import { computeArc } from './lib/projectile'
+import { pointAtProgress, progressCandidatesAtReach } from './lib/hitzone'
 
 import Lights from './scene/Lights'
 import Court from './scene/Court'
@@ -22,6 +38,9 @@ import PresetPanel from './ui/PresetPanel'
 
 const SKY = '#0f1a2e'
 const VISITED_KEY = 'volleyvision-has-opened'
+const INSTRUCTIONS_W = 400
+const PANEL_MARGIN = 16
+type AdjustmentAsset = 'meeple' | 'landing' | 'peak' | 'contact'
 
 function clamp(v: number, min: number, max: number) {
   return Math.max(min, Math.min(max, v))
@@ -38,25 +57,21 @@ export default function App() {
   const presets        = useStore((s) => s.presets)
   const folders        = useStore((s) => s.folders)
   const setLandingPosition = useStore((s) => s.setLandingPosition)
+  const constrainLandingPosition = useStore((s) => s.constrainLandingPosition)
   const setPeakHeight      = useStore((s) => s.setPeakHeight)
+  const setContactProgress = useStore((s) => s.setContactProgress)
+  const setSetterPosition  = useStore((s) => s.setSetterPosition)
   const setActiveFolderId  = useStore((s) => s.setActiveFolderId)
   const landingPosition    = useStore((s) => s.trajectoryDraft.landingPosition)
   const setterPosition     = useStore((s) => s.setterPosition)
   const setter             = useStore((s) => s.setter)
   const net                = useStore((s) => s.net)
   const trajectoryDraft    = useStore((s) => s.trajectoryDraft)
+  const units              = useStore((s) => s.units)
+  const lockHitzoneToReach = useStore((s) => s.lockHitzoneToReach)
+  const hitzoneMustStayInCourt = useStore((s) => s.hitzoneMustStayInCourt)
+  const commitTrajectory = useStore((s) => s.commitTrajectory)
   const isMobile = useIsMobile()
-
-  const activePreset = presets.find((p) => p.id === activePresetId)
-  const activePresetFolder = activePreset
-    ? folders.find((folder) => folder.presetIds.includes(activePreset.id)) ?? folders.find((folder) => folder.id === UNSORTED_FOLDER_ID)
-    : null
-  const activeFolder = activeFolderId ? folders.find((f) => f.id === activeFolderId) : null
-  const selectionLabel = activePreset
-    ? `${activePresetFolder?.name ?? 'General'}: ${activePreset.name}`
-    : activeFolder
-      ? `${activeFolder.name} - Simultaneous`
-      : null
 
   const [orbitEnabled, setOrbitEnabled] = useState(true)
   const [placingMode, setPlacingMode] = useState(false)
@@ -64,7 +79,40 @@ export default function App() {
   const [unsavedNewSet, setUnsavedNewSet] = useState(false)
   const [ghostPos, setGhostPos] = useState<[number, number, number] | null>(null)
   const [interactionLock, setInteractionLock] = useState(0)
+  const [activeAdjustment, setActiveAdjustment] = useState<AdjustmentAsset | null>(null)
+  const [instructionsPos, setInstructionsPos] = useState({ x: 16, y: 64 })
   const savedStateKeyRef = useRef<string | null>(null)
+  const instructionsDragging = useRef(false)
+  const instructionsDragStart = useRef({ mx: 0, my: 0, px: 0, py: 0 })
+
+  const activePreset = presets.find((p) => p.id === activePresetId)
+  const activePresetFolder = activePreset
+    ? folders.find((folder) => folder.presetIds.includes(activePreset.id)) ?? folders.find((folder) => folder.id === UNSORTED_FOLDER_ID)
+    : null
+  const activeFolder = activeFolderId ? folders.find((f) => f.id === activeFolderId) : null
+  const creatingFolder = activeFolder ?? folders.find((folder) => folder.id === UNSORTED_FOLDER_ID) ?? null
+  const selectionHeading = editingNewSet || placingMode
+    ? `${creatingFolder?.name ?? 'General'} - CREATING NEW SET...`
+    : activePreset
+      ? `${activePresetFolder?.name ?? 'General'}: ${activePreset.name}`
+      : activeFolder
+        ? `${activeFolder.name} - Simultaneous`
+        : null
+  const selectionSubheading = editingNewSet || placingMode
+    ? creatingFolder?.maxReachM
+      ? `Max Reach: ${fmtHeight(creatingFolder.maxReachM, units)}`
+      : 'Max Reach Not Defined'
+    : null
+  const folderReach = (activeFolder ?? activePresetFolder)?.maxReachM ?? null
+  const releaseHeight = setter.heightM * SET_CONTACT_MULTIPLIER + (setter.jumpSet ? SETTER_JUMP_HEIGHT : 0)
+  const activeArcPoints = useMemo(() => {
+    if (!landingPosition) return []
+    return computeArc([setterPosition[0], releaseHeight, setterPosition[1]], landingPosition, trajectoryDraft.peakHeight)
+  }, [landingPosition, releaseHeight, setterPosition, trajectoryDraft.peakHeight])
+  const activePeakPoint = useMemo(() => {
+    if (activeArcPoints.length === 0) return null
+    return activeArcPoints.reduce((best, point) => point[1] > best[1] ? point : best, activeArcPoints[0])
+  }, [activeArcPoints])
 
   const disableOrbit = useCallback(() => {
     setInteractionLock((count) => count + 1)
@@ -73,6 +121,17 @@ export default function App() {
   const enableOrbit = useCallback(() => {
     setInteractionLock((count) => Math.max(0, count - 1))
     setOrbitEnabled(true)
+  }, [])
+
+  const toggleAdjustment = useCallback((asset: AdjustmentAsset) => {
+    setActiveAdjustment((current) => current === asset ? null : asset)
+  }, [])
+
+  const updateInstructionsPos = useCallback((nextPos: { x: number; y: number }) => {
+    setInstructionsPos({
+      x: Math.min(Math.max(PANEL_MARGIN, nextPos.x), Math.max(PANEL_MARGIN, window.innerWidth - INSTRUCTIONS_W - PANEL_MARGIN)),
+      y: Math.min(Math.max(PANEL_MARGIN, nextPos.y), Math.max(PANEL_MARGIN, window.innerHeight - 120)),
+    })
   }, [])
 
   useEffect(() => {
@@ -88,6 +147,29 @@ export default function App() {
       window.localStorage.setItem(VISITED_KEY, 'true')
     }
   }, [])
+
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      if (!instructionsDragging.current) return
+      updateInstructionsPos({
+        x: instructionsDragStart.current.px + e.clientX - instructionsDragStart.current.mx,
+        y: instructionsDragStart.current.py + e.clientY - instructionsDragStart.current.my,
+      })
+    }
+    const onUp = () => { instructionsDragging.current = false }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+    return () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+  }, [updateInstructionsPos])
+
+  useEffect(() => {
+    const onResize = () => updateInstructionsPos(instructionsPos)
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [instructionsPos, updateInstructionsPos])
 
   const currentStateKey = useMemo(() => JSON.stringify({
     setterPosition,
@@ -111,36 +193,143 @@ export default function App() {
   const setGhostFromPoint = useCallback((point: THREE.Vector3) => {
     const x = clamp(point.x, SET_X_MIN, SET_X_MAX)
     const z = clamp(point.z, SET_Z_MIN, SET_Z_MAX)
-    setGhostPos([x, 0, z])
-  }, [])
+    setGhostPos(constrainLandingPosition([x, 0, z]))
+  }, [constrainLandingPosition])
+
+  useEffect(() => {
+    if (!placingMode || landingPosition) setGhostPos(null)
+  }, [landingPosition, placingMode])
+
+  const updateSelectedAssetFromEvent = useCallback((e: any) => {
+    if (!activeAdjustment || placingMode) return false
+
+    if (activeAdjustment === 'meeple') {
+      if (!e.point) return false
+      setSetterPosition([
+        clamp(e.point.x, ALLY_X_MIN, ALLY_X_MAX),
+        clamp(e.point.z, ALLY_Z_MIN, ALLY_Z_MAX),
+      ])
+      return true
+    }
+
+    if (activeAdjustment === 'landing') {
+      if (!e.point || !landingPosition) return false
+      setLandingPosition(constrainLandingPosition([
+        clamp(e.point.x, SET_X_MIN, SET_X_MAX),
+        0,
+        clamp(e.point.z, SET_Z_MIN, SET_Z_MAX),
+      ]))
+      return true
+    }
+
+    if (activeAdjustment === 'peak') {
+      if (!activePeakPoint || !e.ray || !e.camera) return false
+      const cameraDirection = new THREE.Vector3()
+      e.camera.getWorldDirection(cameraDirection)
+      const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(
+        cameraDirection,
+        new THREE.Vector3(activePeakPoint[0], activePeakPoint[1], activePeakPoint[2])
+      )
+      const hitPoint = new THREE.Vector3()
+      if (!e.ray.intersectPlane(plane, hitPoint)) return false
+      setPeakHeight(clamp(hitPoint.y, releaseHeight + 0.1, MAX_PEAK_HEIGHT))
+      return true
+    }
+
+    if (activeAdjustment === 'contact') {
+      if (activeArcPoints.length === 0 || !e.ray) return false
+
+      if (lockHitzoneToReach && typeof folderReach === 'number') {
+        const candidates = progressCandidatesAtReach(activeArcPoints, folderReach, hitzoneMustStayInCourt)
+        let bestProgress: number | null = null
+        let bestDistance = Infinity
+        candidates.forEach((progress) => {
+          const point = pointAtProgress(activeArcPoints, progress)
+          if (!point) return
+          const distance = e.ray.distanceSqToPoint(new THREE.Vector3(point[0], point[1], point[2]))
+          if (distance < bestDistance) {
+            bestDistance = distance
+            bestProgress = progress
+          }
+        })
+        if (bestProgress === null) return false
+        setContactProgress(bestProgress)
+        return true
+      }
+
+      let bestProgress: number | null = null
+      let bestDistance = Infinity
+      activeArcPoints.forEach((point, index) => {
+        const progress = index / Math.max(1, activeArcPoints.length - 1)
+        if (progress < 0.02 || progress > 0.98) return
+        if (hitzoneMustStayInCourt && point[0] < ALLY_X_MIN) return
+        const distance = e.ray.distanceSqToPoint(new THREE.Vector3(point[0], point[1], point[2]))
+        if (distance < bestDistance) {
+          bestDistance = distance
+          bestProgress = progress
+        }
+      })
+      if (bestProgress === null) return false
+      setContactProgress(bestProgress)
+      return true
+    }
+
+    return false
+  }, [
+    activeAdjustment,
+    activeArcPoints,
+    activePeakPoint,
+    constrainLandingPosition,
+    folderReach,
+    hitzoneMustStayInCourt,
+    landingPosition,
+    lockHitzoneToReach,
+    placingMode,
+    releaseHeight,
+    setContactProgress,
+    setLandingPosition,
+    setPeakHeight,
+    setSetterPosition,
+  ])
 
   const commitLandingFromEvent = useCallback((e: any) => {
     if (!placingMode || landingPosition) return
     if (!e.point) return
     const x = clamp(e.point.x, SET_X_MIN, SET_X_MAX)
     const z = clamp(e.point.z, SET_Z_MIN, SET_Z_MAX)
-    setLandingPosition([x, 0, z])
+    setLandingPosition(constrainLandingPosition([x, 0, z]))
     setGhostPos(null)
     setPlacingMode(false)
     setUnsavedNewSet(true)
   }, [placingMode, landingPosition, setLandingPosition])
 
   const handleCourtPointerMove = useCallback((e: any) => {
+    if (activeAdjustment && !placingMode) {
+      updateSelectedAssetFromEvent(e)
+      return
+    }
     if (!placingMode || landingPosition) return
     if (!e.point) return
     setGhostFromPoint(e.point)
-  }, [placingMode, landingPosition, setGhostFromPoint])
+  }, [activeAdjustment, landingPosition, placingMode, setGhostFromPoint, updateSelectedAssetFromEvent])
 
   const handleCourtPointerUp = useCallback((e: any) => {
     commitLandingFromEvent(e)
   }, [commitLandingFromEvent])
 
   const handleCourtClick = useCallback((e: any) => {
+    if (activeAdjustment && !placingMode) {
+      updateSelectedAssetFromEvent(e)
+      if (activeAdjustment === 'peak' || activeAdjustment === 'contact') commitTrajectory()
+      setActiveAdjustment(null)
+      return
+    }
     commitLandingFromEvent(e)
-  }, [commitLandingFromEvent])
+  }, [activeAdjustment, commitLandingFromEvent, commitTrajectory, placingMode, updateSelectedAssetFromEvent])
 
   const handleCreateNewSet = () => {
     if (placingMode) {
+      setActiveAdjustment(null)
       setPlacingMode(false)
       setEditingNewSet(false)
       setUnsavedNewSet(false)
@@ -148,6 +337,7 @@ export default function App() {
       setLandingPosition(null)
       return
     }
+    setActiveAdjustment(null)
     setActiveFolderId(activeFolderId)
     setLandingPosition(null)
     setPeakHeight(DEFAULT_PEAK_HEIGHT)
@@ -158,6 +348,7 @@ export default function App() {
   }
 
   const cancelCreationFlow = () => {
+    setActiveAdjustment(null)
     setPlacingMode(false)
     setEditingNewSet(false)
     setUnsavedNewSet(false)
@@ -166,13 +357,16 @@ export default function App() {
   }
 
   const handleSaveComplete = () => {
+    setActiveAdjustment(null)
     setEditingNewSet(false)
     setUnsavedNewSet(false)
     savedStateKeyRef.current = currentStateKey
   }
 
   // Ball indicator: ghost while hovering, landing spot after placed
-  const ballIndicatorPos = ghostPos ?? (landingPosition as [number, number, number] | null)
+  const ballIndicatorPos = placingMode && !landingPosition
+    ? ghostPos
+    : (landingPosition as [number, number, number] | null)
   const assignedPresetIds = new Set(
     folders
       .filter((folder) => folder.id !== UNSORTED_FOLDER_ID)
@@ -183,7 +377,7 @@ export default function App() {
     : (activeFolder?.presetIds.length ?? 0)
   const folderPreviewActive = !!activeFolderId && activeFolderPresetCount > 0 && !activePresetId && !editingNewSet && !placingMode
   const showActiveSet = !folderPreviewActive
-  const controlsEnabled = orbitEnabled && interactionLock === 0 && !placingMode
+  const controlsEnabled = orbitEnabled && interactionLock === 0 && !placingMode && !activeAdjustment
 
   return (
     <div className="fixed inset-0 h-[100dvh] w-screen overflow-hidden">
@@ -191,11 +385,18 @@ export default function App() {
         <div className="absolute top-3 left-3 right-3 z-10 pointer-events-none select-none">
           <div className="flex flex-shrink-0 items-baseline gap-2">
             <span className="text-xl font-semibold text-white/90 tracking-wide">VolleyVision</span>
-            <span className="text-xl font-medium text-white/45">v5</span>
+            <span className="text-xl font-medium text-white/45">v6</span>
           </div>
-          {selectionLabel && (
-            <div className="mt-1 max-w-full text-left text-base font-semibold leading-tight text-white/80">
-              {selectionLabel}
+          {selectionHeading && (
+            <div className="mt-1 max-w-full text-left leading-tight">
+              <div className="text-base font-semibold text-white/80">
+                {selectionHeading}
+              </div>
+              {selectionSubheading && (
+                <div className="mt-0.5 text-xs font-normal text-white/55">
+                  {selectionSubheading}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -203,13 +404,20 @@ export default function App() {
         <>
           <div className="absolute top-4 left-5 z-10 pointer-events-none select-none flex items-baseline gap-2">
             <span className="text-2xl font-semibold text-white/90 tracking-wide">VolleyVision</span>
-            <span className="text-2xl font-medium text-white/45">v5</span>
+            <span className="text-2xl font-medium text-white/45">v6</span>
           </div>
 
-          {selectionLabel && (
+          {selectionHeading && (
             <div className="absolute top-5 left-0 right-0 flex justify-center pointer-events-none z-10">
-              <div className="max-w-[45vw] truncate text-center text-2xl font-semibold text-white/80 tracking-wide">
-                {selectionLabel}
+              <div className="max-w-[45vw] text-center tracking-wide">
+                <div className="truncate text-2xl font-semibold text-white/80">
+                  {selectionHeading}
+                </div>
+                {selectionSubheading && (
+                  <div className="mt-0.5 text-sm font-normal text-white/55">
+                    {selectionSubheading}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -236,6 +444,8 @@ export default function App() {
           <Meeple
             onDragStart={disableOrbit}
             onDragEnd={enableOrbit}
+            selected={activeAdjustment === 'meeple'}
+            onAdjustmentToggle={() => toggleAdjustment('meeple')}
           />
         )}
         <FolderPreview enabled={folderPreviewActive} />
@@ -243,8 +453,10 @@ export default function App() {
           <Ball
             position={ballIndicatorPos}
             draggable={!!landingPosition && !placingMode}
+            selected={activeAdjustment === 'landing'}
             onDragStart={disableOrbit}
             onDragEnd={enableOrbit}
+            onAdjustmentToggle={() => toggleAdjustment('landing')}
           />
         )}
         {showActiveSet && (
@@ -252,6 +464,8 @@ export default function App() {
             onDragStart={disableOrbit}
             onDragEnd={enableOrbit}
             previewLanding={placingMode && !landingPosition ? ghostPos : null}
+            selectedAsset={activeAdjustment === 'peak' || activeAdjustment === 'contact' ? activeAdjustment : null}
+            onAdjustmentToggle={toggleAdjustment}
           />
         )}
         <OrbitControls
@@ -273,13 +487,22 @@ export default function App() {
         <div
           className={`fixed bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border border-gray-200/70 dark:border-white/10 shadow-2xl text-gray-900 dark:text-white ${
             isMobile
-              ? `left-2 right-2 top-24 max-h-[56vh] rounded-xl overflow-hidden ${topPanel === 'instructions' ? 'z-40' : 'z-30'}`
-              : 'z-30 right-6 bottom-32 w-[25rem] rounded-2xl'
+              ? `left-2 right-2 top-20 bottom-24 flex flex-col rounded-xl overflow-hidden ${topPanel === 'instructions' ? 'z-40' : 'z-30'}`
+              : 'z-30 rounded-2xl'
           }`}
+          style={isMobile ? undefined : { left: instructionsPos.x, top: instructionsPos.y, width: INSTRUCTIONS_W }}
         >
-          <div className="flex items-center justify-between border-b border-gray-200/70 dark:border-white/10 px-4 py-3">
+          <div
+            className={`flex items-center justify-between border-b border-gray-200/70 dark:border-white/10 px-4 py-3 ${isMobile ? '' : 'cursor-grab active:cursor-grabbing'}`}
+            onMouseDown={(e) => {
+              if (isMobile) return
+              instructionsDragging.current = true
+              instructionsDragStart.current = { mx: e.clientX, my: e.clientY, px: instructionsPos.x, py: instructionsPos.y }
+            }}
+          >
             <span className="text-sm font-semibold">Instructions</span>
             <button
+              onMouseDown={(e) => e.stopPropagation()}
               onClick={() => setInstructionsOpen(false)}
               className="flex h-7 w-7 items-center justify-center rounded-md bg-red-500 text-sm font-semibold leading-none text-white hover:bg-red-600 transition-colors"
               aria-label="Close instructions"
@@ -287,14 +510,14 @@ export default function App() {
               x
             </button>
           </div>
-          <div className="max-h-[calc(50vh-3.25rem)] overflow-y-auto px-4 py-3 text-sm leading-relaxed text-gray-700 dark:text-gray-200">
+          <div className={`${isMobile ? 'flex-1 min-h-0' : 'max-h-[calc(50vh-3.25rem)]'} overflow-y-auto px-4 py-3 text-sm leading-relaxed text-gray-700 dark:text-gray-200`}>
             <p className="font-semibold text-gray-900 dark:text-white">Set Visualizer - Visualize setting strategies for your team.</p>
             <p className="mt-3">Hi! This is a simple and free 3D indoor volleyball setting visualizer.</p>
             <ol className="mt-3 space-y-2">
               <li>1. Global settings: Configure net height, setter height, and standing/jump set.</li>
               <li>2. New Set: Drag to adjust the trajectory, arc height, and indicate the optimal contact point.</li>
               <li>3. Save: Save each set.</li>
-              <li>4. Presets: Organize saved sets into folders (e.g. for each player/position) then select the folder to visualize them simultaneously.</li>
+              <li>4. Presets: Organize saved sets into player folders, add Max Reach when helpful, then select the player folder to visualize them simultaneously.</li>
             </ol>
             <p className="mt-3">Thanks for checking this out!</p>
             <p>- Justin</p>
