@@ -12,6 +12,24 @@ function clamp(v: number, lo: number, hi: number) {
   return Math.max(lo, Math.min(hi, v))
 }
 
+function GhostBall({ points }: { points: [number, number, number][] }) {
+  const ballRef = useRef<THREE.Mesh>(null)
+  const tRef = useRef(0)
+  useFrame((_, delta) => {
+    if (!ballRef.current) return
+    tRef.current = (tRef.current + delta * 0.45) % 1
+    const idx = Math.min(Math.floor(tRef.current * points.length), points.length - 1)
+    const p = points[idx]
+    ballRef.current.position.set(p[0], p[1], p[2])
+  })
+  return (
+    <mesh ref={ballRef}>
+      <sphereGeometry args={[0.11, 10, 10]} />
+      <meshBasicMaterial color="#f5e642" transparent opacity={0.55} depthWrite={false} />
+    </mesh>
+  )
+}
+
 interface TrajectoryProps {
   onDragStart: () => void
   onDragEnd: () => void
@@ -46,10 +64,6 @@ export default function Trajectory({ onDragStart, onDragEnd, previewLanding, sel
   const contactRaycaster = useRef(new THREE.Raycaster())
   const peakPointerStart = useRef({ x: 0, y: 0, moved: false })
   const contactPointerStart = useRef({ x: 0, y: 0, moved: false })
-
-  // Ghost ball animation
-  const ballRef = useRef<THREE.Mesh>(null)
-  const tRef = useRef(0)
 
   const isPreview = !!previewLanding && !draft.landingPosition
   const activeLanding = isPreview ? previewLanding! : draft.landingPosition
@@ -122,15 +136,6 @@ export default function Trajectory({ onDragStart, onDragEnd, previewLanding, sel
       setContactProgress(nextProgress)
     }
   }, [contactLockedToReach, draft.contactProgress, folderReach, hitzoneMustStayInCourt, points, setContactProgress])
-
-  // Animate ghost ball along arc (runs every frame; no-ops when arc is empty)
-  useFrame((_, delta) => {
-    if (!ballRef.current || points.length === 0) return
-    tRef.current = (tRef.current + delta * 0.45) % 1
-    const idx = Math.min(Math.floor(tRef.current * points.length), points.length - 1)
-    const p = points[idx]
-    ballRef.current.position.set(p[0], p[1], p[2])
-  })
 
   if (!activeLanding || points.length === 0) return null
 
@@ -275,12 +280,7 @@ export default function Trajectory({ onDragStart, onDragEnd, previewLanding, sel
       <Line points={linePoints} color={arcColor} lineWidth={arcWidth} transparent opacity={arcOpacity} />
 
       {/* Ghost ball animated along the arc - committed arc only */}
-      {!isPreview && (
-        <mesh ref={ballRef}>
-          <sphereGeometry args={[0.11, 10, 10]} />
-          <meshBasicMaterial color="#f5e642" transparent opacity={0.55} depthWrite={false} />
-        </mesh>
-      )}
+      {!isPreview && <GhostBall points={points} />}
 
       {/* Intended contact marker - committed arc only */}
       {!isPreview && contactPoint && (

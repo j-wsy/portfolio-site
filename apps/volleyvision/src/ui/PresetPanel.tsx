@@ -75,7 +75,7 @@ export default function PresetPanel({ onSelectItem }: PresetPanelProps) {
     const onResize = () => updatePos(_pos ?? pos)
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
-  }, [pos])
+  }, [])
 
   const assignedToCustomFolder = useMemo(
     () => new Set(

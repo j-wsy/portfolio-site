@@ -403,7 +403,7 @@ export const useStore = create<AppStore>()(
       exportData: () => {
         const s = get()
         exportDataToFile({
-          appVersion: 'v6.1',
+          appVersion: 'v6.2',
           presets: s.presets,
           folders: ensureUnsortedFolder(s.folders),
           settings: {
