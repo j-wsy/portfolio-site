@@ -17,6 +17,3 @@ run('pnpm --filter site build')
 
 // 3. Build volleyvision into docs/volleyvision/
 run('pnpm --filter volleyvision build')
-
-// 4. Copy CNAME so the custom domain survives the deploy
-copyFileSync(resolve(root, 'cname.txt'), resolve(root, 'docs', 'CNAME'))
