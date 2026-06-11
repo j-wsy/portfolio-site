@@ -14,6 +14,3 @@ rmSync(resolve(root, 'docs'), { recursive: true, force: true })
 
 // 2. Build eleventy site into docs/
 run('pnpm --filter site build')
-
-// 3. Build volleyvision into docs/volleyvision/
-run('pnpm --filter volleyvision build')

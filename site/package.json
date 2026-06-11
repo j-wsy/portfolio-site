@@ -1,13 +1,8 @@
 {
-  "name": "site",
-  "version": "1.0.0",
+  "name": "portfolio-site-root",
   "private": true,
   "scripts": {
-    "build": "eleventy",
-    "dev": "eleventy --serve"
-  },
-  "devDependencies": {
-    "@11ty/eleventy": "^3.1.2",
-    "luxon": "^3.5.0"
+    "build": "node scripts/build.mjs",
+    "dev:site": "pnpm --filter site dev"
   }
 }
