@@ -4,6 +4,6 @@ layout: layout.njk
 ---
 
 # 🗣️ let him yap‼️
-(coming soon)
+(coming VERY soon)
 
 - maybe some writing soon aaaaaaaaaaaaaaaaaaa
