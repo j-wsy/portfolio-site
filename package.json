@@ -1,9 +1,8 @@
 {
   "name": "portfolio-site-root",
   "private": true,
-"scripts": {
+  "scripts": {
     "build": "node scripts/build.mjs",
-    "dev:site": "pnpm --filter site dev",
-    "dev:volleyvision": "pnpm --filter volleyvision dev"
+    "dev:site": "pnpm --filter site dev"
   }
 }
