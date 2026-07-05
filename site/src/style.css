@@ -106,6 +106,135 @@ article a:hover {
   text-decoration: underline;
 }
 
+/* -----------------------------------
+   Project Tile Grid
+----------------------------------- */
+.tile-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.tile {
+  flex: 0 1 calc((100% - 2rem) / 3);
+  max-width: calc((100% - 2rem) / 3);
+  aspect-ratio: 1 / 0.85;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  text-decoration: none;
+  font-size: 1rem;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.tile .art {
+  font-size: 2.6rem;
+  line-height: 1;
+}
+
+.tile .tile-name {
+  color: var(--link-color);
+}
+
+.tile .tile-desc {
+  font-size: 0.75rem;
+  opacity: 0.6;
+}
+
+.tile:hover {
+  transform: translateY(-4px) rotate(-1deg);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+  text-decoration: none;
+}
+
+.tile.soon {
+  opacity: 0.45;
+  border-style: dashed;
+  cursor: default;
+}
+
+.tile.soon:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+html.theme-darkdefault .tile {
+  background: #1f1f1f;
+  color: #e6e6e6;
+  border: 1px solid #2e2e2e;
+}
+
+html.theme-darkdefault .tile:hover {
+  border-color: var(--link-hover-color);
+}
+
+html.theme-darkdefault .tile.soon:hover {
+  border-color: #2e2e2e;
+}
+
+html.theme-alt .tile {
+  background: #fff6e8;
+  color: #471f00;
+  border: 1px solid #e5c9a3;
+}
+
+html.theme-alt .tile:hover {
+  border-color: var(--link-hover-color);
+}
+
+html.theme-alt .tile.soon:hover {
+  border-color: #e5c9a3;
+}
+
+/* -----------------------------------
+   Find Me Elsewhere
+----------------------------------- */
+.elsewhere {
+  display: flex;
+  align-items: center;
+  gap: 1.4rem;
+  flex-wrap: wrap;
+  font-size: 1.1rem;
+  margin-bottom: 1.5rem;
+}
+
+.elsewhere a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--link-color);
+  text-decoration: none;
+}
+
+.elsewhere a:hover {
+  color: var(--link-hover-color);
+  text-decoration: underline;
+}
+
+.elsewhere svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+/* -----------------------------------
+   Footer
+----------------------------------- */
+footer {
+  text-align: center;
+  margin-top: 4rem;
+}
+
+.footer-updated {
+  font-size: 0.8rem;
+  color: #555;
+}
+
 .vb-gallery {
   display: flex;
   flex-wrap: wrap;
@@ -228,4 +357,8 @@ nav a:hover {
 
 .sprite-swap:hover {
   background: url('/assets/hit1_0.png') no-repeat;
+}
+
+.sprite-wrap {
+  position: relative;
 }

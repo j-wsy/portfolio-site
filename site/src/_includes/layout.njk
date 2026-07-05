@@ -40,7 +40,9 @@
                 </a>
               </li>             
               <li class="darkmode-icon">
-                <div class="sprite-swap" id="spriteSwap" title="Maple Mode"></div>
+                <div class="sprite-wrap">
+                  <div class="sprite-swap" id="spriteSwap" title="Maple Mode"></div>
+                </div>
               </li>
             </ul>
           </div>
@@ -54,7 +56,7 @@
   </main>
 
 <footer>
-  <p style="text-align: center; margin-top: 4rem; font-size: 0.8rem; color: #555;">
+  <p class="footer-updated">
     site last updated: {{ collections.all | getLatestDate | date }}
   </p>
 </footer>
