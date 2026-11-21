@@ -76,7 +76,7 @@ scene.add(sun, sun.target);
 
 // invisible plane that only renders its shadow, so the card appears to
 // cast a soft shadow onto whatever is behind the (transparent) canvas
-const shadowPlane = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), new THREE.ShadowMaterial({ opacity: 0.16 }));
+const shadowPlane = new THREE.Mesh(new THREE.PlaneGeometry(600, 600), new THREE.ShadowMaterial({ opacity: 0.16 }));
 shadowPlane.position.z = -0.7;
 shadowPlane.receiveShadow = true;
 scene.add(shadowPlane);
@@ -414,6 +414,14 @@ function layout() {
   // used only to bound how far the card can be dragged
   const totalH = frameH * (Hfull / refH);
   view = { w: totalH * (W / Hfull), h: totalH };
+
+  // Widen the shadow camera to match — on a wide viewport the card can be
+  // dragged much farther sideways than the shadow's old fixed bound
+  // allowed, which made the shadow visibly clip before the card did.
+  const shadowHalfW = view.w / 2 + 2 * SCALE;
+  sun.shadow.camera.left = -shadowHalfW;
+  sun.shadow.camera.right = shadowHalfW;
+  sun.shadow.camera.updateProjectionMatrix();
 
   // card is centered (x = 0); lanyard anchored just off the top edge
   anchor.set(0, totalH / 2 + 0.4 * SCALE, 0);
