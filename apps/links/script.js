@@ -431,7 +431,10 @@ function layout() {
   const shadowMargin = 0.28 * SCALE;
   const cardBottomWorldY = restCenterY - CH / 2 - shadowMargin;
   const ndcY = cardBottomWorldY / (D * tanHalfFov);
-  const clearPx = Math.max(0, (1 - ndcY) / 2 * Hfull);
+  // raised by 1.5x the "(tap to flip...)" hint's font height (0.8rem in CSS)
+  const rootFontPx = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+  const raiseBy = 1.5 * 0.8 * rootFontPx;
+  const clearPx = Math.max(0, (1 - ndcY) / 2 * Hfull - raiseBy);
   heroEl.style.setProperty('--content-offset', clearPx + 'px');
 }
 

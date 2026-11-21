@@ -8,6 +8,8 @@ importers:
 
   .: {}
 
+  apps/links: {}
+
   site:
     devDependencies:
       '@11ty/eleventy':
