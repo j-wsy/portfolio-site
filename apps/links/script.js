@@ -403,7 +403,7 @@ function layout() {
   const isDesktop = window.innerWidth > 760;
   const refH = isDesktop
     ? Math.min(window.innerHeight * 0.52, 760)
-    : Math.min(window.innerHeight * 0.4, 480);
+    : Math.min(window.innerHeight * 0.5, 600);
   const aspectRef = W / refH;
   const frameH = Math.max(BASE_CH / 0.62, BASE_CW / (0.55 * aspectRef));
   const tanHalfFov = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
